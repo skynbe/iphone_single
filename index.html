@@ -34,11 +34,11 @@
     .icon{padding:0;width:44px}
     .icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
     .bottom{position:absolute;left:50%;bottom:max(17px,calc(env(safe-area-inset-bottom) + 10px));transform:translateX(-50%);width:min(94vw,650px);display:flex;flex-direction:column;align-items:center;gap:10px}
-    .actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%;max-width:100%}
+    .actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;width:100%;max-width:100%}
     .actions>button,.actions>.pick{width:100%;min-width:0;padding-inline:10px;overflow:hidden}
     .pick input{display:none}
-    .hint{margin-bottom:78px;padding:4px 9px;border-radius:8px;background:rgba(0,0,0,.17);text-align:center;font-size:12px;font-weight:520;line-height:1.45;color:rgba(255,255,255,.86);text-shadow:0 2px 12px rgba(0,0,0,.9)}
-    @media(orientation:landscape) and (min-height:521px){.hint{margin-bottom:174px}}
+    .hint{margin-bottom:73px;padding:4px 9px;border-radius:8px;background:rgba(0,0,0,.17);text-align:center;font-size:12px;font-weight:520;line-height:1.45;color:rgba(255,255,255,.86);text-shadow:0 2px 12px rgba(0,0,0,.9)}
+    @media(orientation:landscape) and (min-height:521px){.hint{margin-bottom:169px}}
     .hint span{display:block;color:rgba(255,255,255,.62);font-size:11px}
     .motion.active{background:rgba(246,246,248,.9);border-color:transparent;color:#111}
     .notice{position:fixed;z-index:7;left:50%;top:50%;width:min(88vw,370px);transform:translate(-50%,-50%);padding:25px 22px;border:1px solid rgba(255,255,255,.17);border-radius:24px;background:rgba(17,17,19,.78);box-shadow:0 22px 70px rgba(0,0,0,.48);-webkit-backdrop-filter:blur(24px) saturate(1.2);backdrop-filter:blur(24px) saturate(1.2);text-align:center}
@@ -46,7 +46,7 @@
     .notice h1{font-size:19px;line-height:1.25;margin:0 0 9px;letter-spacing:-.02em}
     .notice p{font-size:13px;line-height:1.55;color:rgba(255,255,255,.72);margin:0 0 18px}
     .notice p span{display:block;margin-top:3px;color:rgba(255,255,255,.5)}
-    .status{position:fixed;z-index:8;left:50%;bottom:max(86px,calc(env(safe-area-inset-bottom) + 78px));max-width:90vw;transform:translate(-50%,8px);padding:10px 14px;border:1px solid rgba(255,255,255,.15);border-radius:13px;background:rgba(18,18,20,.78);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);font-size:12px;line-height:1.3;opacity:0;visibility:hidden;transition:opacity .16s ease,transform .16s ease,visibility 0s linear .16s;pointer-events:none;text-align:center}
+    .status{position:fixed;z-index:8;left:50%;bottom:max(86px,calc(env(safe-area-inset-bottom) + 78px));max-width:90vw;transform:translate(-50%,8px);padding:10px 14px;border:1px solid rgba(255,255,255,.15);border-radius:13px;background:rgba(18,18,20,.66);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);font-size:12px;line-height:1.3;opacity:0;visibility:hidden;transition:opacity .16s ease,transform .16s ease,visibility 0s linear .16s;pointer-events:none;text-align:center}
     .status.show{opacity:1;visibility:visible;transform:translate(-50%,0);transition-delay:0s}
     @media(max-width:430px){button,.pick{height:50px;min-width:0;padding:7px 5px;font-size:clamp(10px,3vw,12px);flex-direction:column;gap:2px}.actions{gap:7px}.hint{font-size:11px}.hint span{font-size:10px}.desktop-extra{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;font-size:10px;font-weight:520;opacity:.68}}
     @media(max-height:520px){.hint{display:none}.bottom{bottom:max(8px,env(safe-area-inset-bottom))}.notice{padding:18px}.notice p{margin-bottom:12px}}
@@ -66,7 +66,6 @@
       <div class="hint" id="hint">Tilt left or right.<span>좌우로 기울여보세요</span></div>
       <div class="actions">
         <label class="pick">Choose image <span class="desktop-extra">· 사진 고르기</span><input id="file" type="file" accept="image/*"></label>
-        <button class="motion active" id="homescreen" aria-pressed="true">Icons on <span class="desktop-extra">· 아이콘 켜짐</span></button>
         <button class="motion" id="motion">Enable motion <span class="desktop-extra">· 모션 켜기</span></button>
       </div>
     </div>
@@ -86,7 +85,6 @@
     const chrome=document.querySelector('#chrome');
     const bottomControls=document.querySelector('.bottom');
     const fileInput=document.querySelector('#file');
-    const homeScreenButton=document.querySelector('#homescreen');
     const motionButton=document.querySelector('#motion');
     const fullscreenButton=document.querySelector('#fullscreen');
     const notice=document.querySelector('#notice');
@@ -255,7 +253,7 @@
     }
 
     const HOME_W=1179,HOME_H=2556;
-    let sourceImage=null,homeScreenOn=true,textureViewportWidth=0,textureViewportHeight=0;
+    let sourceImage=null,textureViewportWidth=0,textureViewportHeight=0;
     function roundedPath(ctx,x,y,w,h,r){
       const rr=Math.min(r,w/2,h/2);ctx.beginPath();ctx.moveTo(x+rr,y);ctx.arcTo(x+w,y,x+w,y+h,rr);ctx.arcTo(x+w,y+h,x,y+h,rr);ctx.arcTo(x,y+h,x,y,rr);ctx.arcTo(x,y,x+w,y,rr);ctx.closePath();
     }
@@ -402,7 +400,7 @@
       if(!sourceImage)return;
       const size=width&&height?{width,height}:viewportTextureSize();
       textureViewportWidth=size.width;textureViewportHeight=size.height;
-      uploadImage(homeScreenOn?drawHomeScreen(sourceImage,size.width,size.height):drawViewportWallpaper(sourceImage,size.width,size.height));
+      uploadImage(drawHomeScreen(sourceImage,size.width,size.height));
     }
     function loadSource(src,revoke=false){
       const img=new Image();
@@ -530,11 +528,6 @@
     }
     requestAnimationFrame(render);
 
-    homeScreenButton.addEventListener('click',event=>{
-      event.stopPropagation();homeScreenOn=!homeScreenOn;homeScreenButton.classList.toggle('active',homeScreenOn);homeScreenButton.setAttribute('aria-pressed',String(homeScreenOn));
-      homeScreenButton.innerHTML=homeScreenOn?'Icons on <span class="desktop-extra">· 아이콘 켜짐</span>':'Icons off <span class="desktop-extra">· 아이콘 꺼짐</span>';
-      refreshTexture();showStatus(homeScreenOn?'Home screen icons on · 홈 화면 아이콘 켜짐':'Wallpaper only · 배경화면만 표시');
-    });
     motionButton.addEventListener('click',event=>{event.stopPropagation();enableMotion()});
     retryButton.addEventListener('click',enableMotion);
     document.addEventListener('pointerdown',event=>{
