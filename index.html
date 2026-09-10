@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="icon" href="data:,">
+  <title>iPhone Single</title>
+  <style>
+    :root{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;color:#fff;background:#000}
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#000}
+    body{touch-action:none;user-select:none;-webkit-user-select:none}
+    canvas{position:fixed;inset:0;width:100%;height:100%;display:block;background:#000;cursor:grab}
+    canvas.dragging{cursor:grabbing}
+    .chrome{position:fixed;z-index:4;inset:0;pointer-events:none;opacity:1;transition:opacity .22s ease}
+    .chrome.hidden{opacity:0}
+    .chrome.hidden *{pointer-events:none!important}
+    button,.pick{height:44px;min-width:44px;padding:0 16px;border:1px solid rgba(255,255,255,.2);border-radius:999px;background:rgba(20,20,22,.58);box-shadow:inset 0 1px rgba(255,255,255,.12),0 7px 28px rgba(0,0,0,.22);-webkit-backdrop-filter:blur(18px) saturate(1.2);backdrop-filter:blur(18px) saturate(1.2);color:#fff;font:600 13px/1 -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap;cursor:pointer;pointer-events:auto}
+    button:active,.pick:active{background:rgba(50,50,54,.72)}
+    button:focus-visible,.pick:focus-within{outline:2px solid #fff;outline-offset:2px}
+    .top{position:absolute;top:max(12px,env(safe-area-inset-top));right:12px;display:flex;gap:8px}
+    .icon{padding:0;width:44px}
+    .icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+    .bottom{position:absolute;left:50%;bottom:max(17px,calc(env(safe-area-inset-bottom) + 10px));transform:translateX(-50%);width:min(94vw,520px);display:flex;flex-direction:column;align-items:center;gap:10px}
+    .actions{display:flex;justify-content:center;gap:8px;max-width:100%;flex-wrap:wrap}
+    .pick input{display:none}
+    .hint{text-align:center;font-size:12px;font-weight:520;line-height:1.45;color:rgba(255,255,255,.86);text-shadow:0 2px 12px rgba(0,0,0,.9)}
+    .hint span{display:block;color:rgba(255,255,255,.62);font-size:11px}
+    .motion.active{background:rgba(246,246,248,.9);border-color:transparent;color:#111}
+    .notice{position:fixed;z-index:7;left:50%;top:50%;width:min(88vw,370px);transform:translate(-50%,-50%);padding:25px 22px;border:1px solid rgba(255,255,255,.17);border-radius:24px;background:rgba(17,17,19,.78);box-shadow:0 22px 70px rgba(0,0,0,.48);-webkit-backdrop-filter:blur(24px) saturate(1.2);backdrop-filter:blur(24px) saturate(1.2);text-align:center}
+    .notice[hidden]{display:none}
+    .notice h1{font-size:19px;line-height:1.25;margin:0 0 9px;letter-spacing:-.02em}
+    .notice p{font-size:13px;line-height:1.55;color:rgba(255,255,255,.72);margin:0 0 18px}
+    .notice p span{display:block;margin-top:3px;color:rgba(255,255,255,.5)}
+    .status{position:fixed;z-index:8;left:50%;bottom:max(86px,calc(env(safe-area-inset-bottom) + 78px));max-width:90vw;transform:translate(-50%,8px);padding:10px 14px;border:1px solid rgba(255,255,255,.15);border-radius:13px;background:rgba(18,18,20,.78);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);font-size:12px;line-height:1.3;opacity:0;transition:.2s;pointer-events:none;text-align:center}
+    .status.show{opacity:1;transform:translate(-50%,0)}
+    @media(max-width:430px){button,.pick{height:50px;min-width:0;padding:7px 14px;font-size:12px;flex-direction:column;gap:2px}.actions{gap:7px}.hint{font-size:11px}.hint span{font-size:10px}.desktop-extra{display:block;font-size:10px;font-weight:520;opacity:.68}}
+    @media(max-height:520px){.hint{display:none}.bottom{bottom:max(8px,env(safe-area-inset-bottom))}.notice{padding:18px}.notice p{margin-bottom:12px}}
+    @media(prefers-reduced-motion:reduce){.chrome,.status{transition:none}}
+  </style>
+</head>
+<body>
+  <canvas id="solo" tabindex="0" role="application" aria-label="Tilt-responsive image display; drag horizontally or use left and right arrow keys"></canvas>
+
+  <div class="chrome" id="chrome">
+    <div class="top">
+      <button class="icon" id="fullscreen" aria-label="Toggle fullscreen" title="Fullscreen">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg>
+      </button>
+    </div>
+    <div class="bottom">
+      <div class="hint" id="hint">Face the screen toward the sky, then tilt left or right.<span>화면을 하늘로 향하게 들고 좌우로 기울이세요</span></div>
+      <div class="actions">
+        <label class="pick">Choose image <span class="desktop-extra">· 사진 고르기</span><input id="file" type="file" accept="image/*"></label>
+        <button class="motion active" id="homescreen" aria-pressed="true">Icons on <span class="desktop-extra">· 아이콘 켜짐</span></button>
+        <button class="motion" id="motion">Enable motion <span class="desktop-extra">· 모션 켜기</span></button>
+      </div>
+    </div>
+  </div>
+
+  <section class="notice" id="notice" hidden role="dialog" aria-live="polite">
+    <h1 id="notice-title">Motion isn’t available</h1>
+    <p id="notice-copy">No usable gravity data arrived. Try again, or drag left and right to preview the effect.<span>중력 센서 정보를 받지 못했습니다. 다시 시도하거나 화면을 좌우로 드래그하세요.</span></p>
+    <button id="retry">Retry motion · 다시 시도</button>
+  </section>
+  <div class="status" id="status" role="status"></div>
+
+  <script>
+  (()=>{
+    'use strict';
+    const canvas=document.querySelector('#solo');
+    const chrome=document.querySelector('#chrome');
+    const fileInput=document.querySelector('#file');
+    const homeScreenButton=document.querySelector('#homescreen');
+    const motionButton=document.querySelector('#motion');
+    const fullscreenButton=document.querySelector('#fullscreen');
+    const notice=document.querySelector('#notice');
+    const noticeTitle=document.querySelector('#notice-title');
+    const noticeCopy=document.querySelector('#notice-copy');
+    const retryButton=document.querySelector('#retry');
+    const status=document.querySelector('#status');
+
+    const gl=canvas.getContext('webgl2',{alpha:false,antialias:false,premultipliedAlpha:false,preserveDrawingBuffer:false});
+    if(!gl){
+      notice.hidden=false;
+      noticeTitle.textContent='WebGL 2 is required';
+      noticeCopy.innerHTML='This browser can’t render the tilt-and-blur effect. Try a current version of Safari or Chrome.<span>이 브라우저에서는 틸트·블러 효과를 표시할 수 없습니다. 최신 Safari 또는 Chrome을 사용해 주세요.</span>';
+      retryButton.hidden=true;
+      chrome.classList.add('hidden');
+      return;
+    }
+
+    const vertexSource=`#version 300 es
+      in vec2 a_position;
+      out vec2 v_uv;
+      void main(){v_uv=a_position*.5+.5;gl_Position=vec4(a_position,0.0,1.0);}`;
+
+    const fragmentSource=`#version 300 es
+      precision highp float;
+      precision highp sampler2D;
+      uniform sampler2D u_image;
+      uniform vec2 u_imageSize;
+      uniform float u_aspect;
+      uniform float u_turn;
+      uniform float u_phase;
+      uniform vec3 u_blurAngle;
+      uniform vec3 u_blurSpread;
+      uniform vec3 u_blackGradient;
+      in vec2 v_uv;
+      out vec4 outColor;
+      void main(){
+        if(u_turn<=0.00001){outColor=textureLod(u_image,v_uv,0.0);return;}
+        float outer=step(0.5,u_phase);
+        float hinge=mix(1.0,0.0,outer);
+        float fromHinge=abs(v_uv.x-hinge);
+        float tilt=u_turn*1.5707963267948966;
+        float cosine=max(0.0,cos(tilt));
+        float sine=sin(tilt);
+        float eyeDistance=2.4*max(u_aspect,1.0);
+        float depth=fromHinge*u_aspect*sine;
+        float perspective=eyeDistance/(eyeDistance-depth);
+        vec2 imageUv;
+        imageUv.x=hinge+(v_uv.x-hinge)*cosine*perspective;
+        imageUv.y=0.5+(v_uv.y-0.5)*perspective;
+
+        float blurAngle=pow(smoothstep(0.0,radians(u_blurAngle.y),tilt),u_blurAngle.z);
+        float blurSpread=pow(smoothstep(0.0,u_blurSpread.x,fromHinge),u_blurSpread.y);
+        float defocus=blurAngle*mix(u_blurSpread.z,1.0,blurSpread);
+        float sigma=u_imageSize.x*u_blurAngle.x*defocus;
+        float lod=max(0.0,log2(max(sigma,1.0)));
+        vec3 blurred=textureLod(u_image,imageUv,max(1.0,lod)).rgb;
+        vec3 content=sigma<2.0?mix(textureLod(u_image,imageUv,max(0.0,lod-1.0)).rgb,blurred,smoothstep(0.0,2.0,sigma)):blurred;
+
+        content*=1.0-mix(0.28,0.06,outer)*sine*pow(fromHinge,1.6);
+        float reflection=exp(-pow((fromHinge-0.70)/0.30,2.0))*sine;
+        content+=vec3(0.82,0.85,0.86)*reflection*0.025;
+        float blackFade=clamp((fromHinge-u_blackGradient.y)/(1.0-u_blackGradient.y),0.0,1.0);
+        content*=1.0-u_blackGradient.x*blurAngle*blackFade;
+
+        float m=fwidth(v_uv.y)+2.0*sigma/u_imageSize.y;
+        float mask=1.0-smoothstep(0.5-m,0.5+m,abs(imageUv.y-0.5));
+        vec3 finalColor=mix(vec3(0.003,0.004,0.005),content,mask);
+        outColor=vec4(finalColor,1.0);
+      }`;
+
+    const blurFragmentSource=`#version 300 es
+      precision highp float;
+      precision highp sampler2D;
+      uniform sampler2D u_source;
+      uniform vec2 u_direction;
+      uniform float u_sourceLod;
+      in vec2 v_uv;
+      out vec4 outColor;
+      void main(){
+        vec4 c=textureLod(u_source,v_uv,u_sourceLod)*0.2270270270;
+        c+=textureLod(u_source,v_uv+u_direction*1.3846153846,u_sourceLod)*0.3162162162;
+        c+=textureLod(u_source,v_uv-u_direction*1.3846153846,u_sourceLod)*0.3162162162;
+        c+=textureLod(u_source,v_uv+u_direction*3.2307692308,u_sourceLod)*0.0702702703;
+        c+=textureLod(u_source,v_uv-u_direction*3.2307692308,u_sourceLod)*0.0702702703;
+        outColor=c;
+      }`;
+
+    function compile(type,source){
+      const shader=gl.createShader(type);gl.shaderSource(shader,source);gl.compileShader(shader);
+      if(!gl.getShaderParameter(shader,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(shader)||'Shader compilation failed');
+      return shader;
+    }
+    function program(vs,fs){
+      const p=gl.createProgram();gl.attachShader(p,compile(gl.VERTEX_SHADER,vs));gl.attachShader(p,compile(gl.FRAGMENT_SHADER,fs));gl.linkProgram(p);
+      if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(p)||'Shader link failed');
+      return p;
+    }
+
+    let renderProgram,blurProgram;
+    try{renderProgram=program(vertexSource,fragmentSource);blurProgram=program(vertexSource,blurFragmentSource)}catch(error){
+      notice.hidden=false;noticeTitle.textContent='The effect could not start';noticeCopy.textContent=error.message;retryButton.hidden=true;chrome.classList.add('hidden');return;
+    }
+
+    const vao=gl.createVertexArray();gl.bindVertexArray(vao);
+    const vertices=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,vertices);
+    gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);
+    for(const p of [renderProgram,blurProgram]){
+      const loc=gl.getAttribLocation(p,'a_position');gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+    }
+
+    const imageTexture=gl.createTexture();
+    const scratchA=gl.createTexture();
+    const scratchB=gl.createTexture();
+    const framebuffer=gl.createFramebuffer();
+    let imageWidth=1,imageHeight=1,imageReady=false;
+
+    function configureTexture(texture,mipmap=false){
+      gl.bindTexture(gl.TEXTURE_2D,texture);
+      gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,mipmap?gl.LINEAR_MIPMAP_LINEAR:gl.LINEAR);
+    }
+    configureTexture(imageTexture,true);configureTexture(scratchA);configureTexture(scratchB);
+
+    function allocateScratch(texture,w,h){
+      gl.bindTexture(gl.TEXTURE_2D,texture);
+      gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,w,h,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
+    }
+    function attach(texture,level=0){
+      gl.bindFramebuffer(gl.FRAMEBUFFER,framebuffer);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,texture,level);
+      if(gl.checkFramebufferStatus(gl.FRAMEBUFFER)!==gl.FRAMEBUFFER_COMPLETE)throw new Error('Blur framebuffer is incomplete');
+    }
+    function blurPass(source,sourceLod,target,w,h,dx,dy){
+      attach(target,0);gl.viewport(0,0,w,h);gl.useProgram(blurProgram);
+      gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,source);
+      gl.uniform1i(gl.getUniformLocation(blurProgram,'u_source'),0);
+      gl.uniform2f(gl.getUniformLocation(blurProgram,'u_direction'),dx,dy);
+      gl.uniform1f(gl.getUniformLocation(blurProgram,'u_sourceLod'),sourceLod);
+      gl.drawArrays(gl.TRIANGLES,0,6);
+    }
+    function buildGaussianMips(){
+      const levels=Math.floor(Math.log2(Math.max(imageWidth,imageHeight)));
+      for(let level=1;level<=levels;level++){
+        const w=Math.max(1,imageWidth>>level),h=Math.max(1,imageHeight>>level);
+        const sourceW=Math.max(1,imageWidth>>(level-1)),sourceH=Math.max(1,imageHeight>>(level-1));
+        allocateScratch(scratchA,w,h);allocateScratch(scratchB,w,h);
+        blurPass(imageTexture,level-1,scratchA,w,h,1/sourceW,0);
+        blurPass(scratchA,0,scratchB,w,h,0,1/h);
+        attach(scratchB,0);
+        gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,imageTexture);
+        gl.copyTexSubImage2D(gl.TEXTURE_2D,level,0,0,0,0,w,h);
+      }
+      gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+    }
+    function uploadImage(image){
+      imageWidth=image.naturalWidth||image.width;imageHeight=image.naturalHeight||image.height;
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
+      gl.bindTexture(gl.TEXTURE_2D,imageTexture);
+      gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,gl.RGBA,gl.UNSIGNED_BYTE,image);
+      gl.generateMipmap(gl.TEXTURE_2D);
+      try{buildGaussianMips()}catch(error){showStatus('High-quality blur unavailable · 고품질 블러를 준비하지 못했습니다')}
+      imageReady=true;
+    }
+
+    const HOME_W=1179,HOME_H=2556;
+    let sourceImage=null,homeScreenOn=true;
+    function roundedPath(ctx,x,y,w,h,r){
+      const rr=Math.min(r,w/2,h/2);ctx.beginPath();ctx.moveTo(x+rr,y);ctx.arcTo(x+w,y,x+w,y+h,rr);ctx.arcTo(x+w,y+h,x,y+h,rr);ctx.arcTo(x,y+h,x,y,rr);ctx.arcTo(x,y,x+w,y,rr);ctx.closePath();
+    }
+    function defaultWallpaper(){
+      const c=document.createElement('canvas');c.width=HOME_W;c.height=HOME_H;const ctx=c.getContext('2d');
+      const sky=ctx.createLinearGradient(0,0,HOME_W,HOME_H);sky.addColorStop(0,'#071325');sky.addColorStop(.42,'#17385a');sky.addColorStop(.72,'#ca6753');sky.addColorStop(1,'#f3a85f');ctx.fillStyle=sky;ctx.fillRect(0,0,HOME_W,HOME_H);
+      const glow=ctx.createRadialGradient(940,1820,20,940,1820,920);glow.addColorStop(0,'rgba(255,210,139,.88)');glow.addColorStop(.44,'rgba(242,115,102,.46)');glow.addColorStop(1,'rgba(17,43,77,0)');ctx.fillStyle=glow;ctx.fillRect(0,780,HOME_W,1776);
+      ctx.save();ctx.globalAlpha=.82;ctx.fillStyle='#132e4d';ctx.beginPath();ctx.moveTo(-80,1350);ctx.bezierCurveTo(250,1110,590,1170,1260,700);ctx.lineTo(1260,-100);ctx.lineTo(-80,-100);ctx.closePath();ctx.fill();ctx.restore();
+      const shade=ctx.createLinearGradient(0,0,0,HOME_H);shade.addColorStop(0,'rgba(0,0,0,.16)');shade.addColorStop(.48,'rgba(0,0,0,0)');shade.addColorStop(1,'rgba(0,0,0,.23)');ctx.fillStyle=shade;ctx.fillRect(0,0,HOME_W,HOME_H);return c;
+    }
+    function drawCover(ctx,image,w,h){
+      const iw=image.naturalWidth||image.width,ih=image.naturalHeight||image.height;const scale=Math.max(w/iw,h/ih);const dw=iw*scale,dh=ih*scale;ctx.drawImage(image,(w-dw)/2,(h-dh)/2,dw,dh);
+      const veil=ctx.createLinearGradient(0,0,0,h);veil.addColorStop(0,'rgba(0,0,0,.18)');veil.addColorStop(.45,'rgba(0,0,0,0)');veil.addColorStop(1,'rgba(0,0,0,.25)');ctx.fillStyle=veil;ctx.fillRect(0,0,w,h);
+    }
+    function drawSignal(ctx,x,y){
+      ctx.save();ctx.fillStyle='#fff';for(let i=0;i<4;i++){roundedPath(ctx,x+i*13,y+(3-i)*6,9,14+i*6,4);ctx.fill()}ctx.strokeStyle='#fff';ctx.lineWidth=6;ctx.beginPath();ctx.arc(x+88,y+22,26,Math.PI*1.15,Math.PI*1.85);ctx.stroke();ctx.beginPath();ctx.arc(x+88,y+24,14,Math.PI*1.17,Math.PI*1.83);ctx.stroke();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x+88,y+27,4,0,Math.PI*2);ctx.fill();roundedPath(ctx,x+130,y+3,54,27,7);ctx.stroke();ctx.fillRect(x+136,y+9,38,15);ctx.fillRect(x+186,y+11,4,11);ctx.restore();
+    }
+    function iconBase(ctx,x,y,size,color){ctx.save();ctx.shadowColor='rgba(0,0,0,.20)';ctx.shadowBlur=18;ctx.shadowOffsetY=7;roundedPath(ctx,x,y,size,size,size*.225);ctx.fillStyle=color;ctx.fill();ctx.restore()}
+    function line(ctx,color,width){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap='round';ctx.lineJoin='round'}
+    function drawAppGlyph(ctx,type,x,y,s){
+      const cx=x+s/2,cy=y+s/2;
+      ctx.save();
+      if(type==='facetime'){ctx.fillStyle='#fff';roundedPath(ctx,x+s*.22,y+s*.34,s*.40,s*.32,s*.08);ctx.fill();ctx.beginPath();ctx.moveTo(x+s*.60,y+s*.43);ctx.lineTo(x+s*.79,y+s*.32);ctx.lineTo(x+s*.79,y+s*.68);ctx.lineTo(x+s*.60,y+s*.57);ctx.closePath();ctx.fill()}
+      else if(type==='calendar'){ctx.fillStyle='#fff';roundedPath(ctx,x,y,s,s,s*.225);ctx.fill();ctx.fillStyle='#ff3b30';ctx.fillRect(x,y+s*.17,s,s*.18);ctx.font=`700 ${s*.16}px -apple-system`;ctx.textAlign='center';ctx.fillText(new Date().toLocaleDateString('en-US',{weekday:'short'}).toUpperCase(),cx,y+s*.14);ctx.fillStyle='#111';ctx.font=`300 ${s*.45}px -apple-system`;ctx.fillText(String(new Date().getDate()),cx,y+s*.76)}
+      else if(type==='photos'){ctx.fillStyle='#fff';roundedPath(ctx,x,y,s,s,s*.225);ctx.fill();const colors=['#ff3b30','#ff9500','#ffcc00','#34c759','#00c7be','#0a84ff','#5e5ce6','#af52de'];for(let i=0;i<8;i++){ctx.save();ctx.translate(cx,cy);ctx.rotate(i*Math.PI/4);ctx.fillStyle=colors[i];ctx.beginPath();ctx.ellipse(0,-s*.21,s*.11,s*.23,0,0,Math.PI*2);ctx.fill();ctx.restore()}ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx,cy,s*.095,0,Math.PI*2);ctx.fill()}
+      else if(type==='camera'){const g=ctx.createLinearGradient(x,y,x+s,y+s);g.addColorStop(0,'#e7e7e8');g.addColorStop(1,'#8c8c91');ctx.fillStyle=g;roundedPath(ctx,x,y,s,s,s*.225);ctx.fill();ctx.fillStyle='#1c1c1e';roundedPath(ctx,x+s*.18,y+s*.31,s*.64,s*.44,s*.12);ctx.fill();ctx.fillStyle='#5b5b61';ctx.beginPath();ctx.arc(cx,cy+s*.03,s*.17,0,Math.PI*2);ctx.fill();ctx.fillStyle='#111';ctx.beginPath();ctx.arc(cx,cy+s*.03,s*.105,0,Math.PI*2);ctx.fill();ctx.fillStyle='#64d2ff';ctx.beginPath();ctx.arc(cx-s*.035,cy-s*.01,s*.027,0,Math.PI*2);ctx.fill()}
+      else if(type==='mail'){line(ctx,'#fff',s*.055);roundedPath(ctx,x+s*.16,y+s*.27,s*.68,s*.47,s*.07);ctx.stroke();ctx.beginPath();ctx.moveTo(x+s*.18,y+s*.31);ctx.lineTo(cx,y+s*.56);ctx.lineTo(x+s*.82,y+s*.31);ctx.stroke()}
+      else if(type==='clock'){ctx.fillStyle='#111';roundedPath(ctx,x,y,s,s,s*.225);ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx,cy,s*.37,0,Math.PI*2);ctx.fill();ctx.fillStyle='#111';for(let i=0;i<12;i++){ctx.save();ctx.translate(cx,cy);ctx.rotate(i*Math.PI/6);ctx.fillRect(-2,-s*.32,4,s*.035);ctx.restore()}line(ctx,'#111',s*.035);ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx,cy-s*.20);ctx.moveTo(cx,cy);ctx.lineTo(cx+s*.16,cy+s*.10);ctx.stroke();line(ctx,'#ff3b30',s*.018);ctx.beginPath();ctx.moveTo(cx-s*.22,cy+s*.19);ctx.lineTo(cx+s*.25,cy-s*.22);ctx.stroke();ctx.fillStyle='#111';ctx.beginPath();ctx.arc(cx,cy,s*.035,0,Math.PI*2);ctx.fill()}
+      else if(type==='maps'){ctx.fillStyle='#e9f3dd';roundedPath(ctx,x,y,s,s,s*.225);ctx.fill();line(ctx,'#fff',s*.12);ctx.beginPath();ctx.moveTo(x-s*.05,y+s*.72);ctx.bezierCurveTo(x+s*.22,y+s*.55,x+s*.31,y+s*.42,x+s*.48,y+s*.48);ctx.bezierCurveTo(x+s*.67,y+s*.55,x+s*.72,y+s*.26,x+s*1.05,y+s*.18);ctx.stroke();line(ctx,'#38a0f4',s*.08);ctx.beginPath();ctx.moveTo(x+s*.02,y+s*.72);ctx.bezierCurveTo(x+s*.24,y+s*.62,x+s*.38,y+s*.35,x+s*.58,y+s*.45);ctx.bezierCurveTo(x+s*.76,y+s*.54,x+s*.74,y+s*.22,x+s*.99,y+s*.20);ctx.stroke();ctx.fillStyle='#ff3b30';ctx.beginPath();ctx.arc(x+s*.66,y+s*.38,s*.10,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x+s*.66,y+s*.38,s*.038,0,Math.PI*2);ctx.fill()}
+      else if(type==='weather'){const g=ctx.createLinearGradient(x,y,x,y+s);g.addColorStop(0,'#2095f3');g.addColorStop(1,'#65c8ff');ctx.fillStyle=g;roundedPath(ctx,x,y,s,s,s*.225);ctx.fill();ctx.fillStyle='#ffd60a';ctx.beginPath();ctx.arc(x+s*.42,y+s*.39,s*.18,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x+s*.40,y+s*.66,s*.16,Math.PI,0);ctx.arc(x+s*.59,y+s*.60,s*.21,Math.PI,0);ctx.arc(x+s*.73,y+s*.68,s*.14,Math.PI,0);ctx.lineTo(x+s*.78,y+s*.76);ctx.lineTo(x+s*.29,y+s*.76);ctx.closePath();ctx.fill()}
+      else if(type==='reminders'){ctx.fillStyle='#fff';roundedPath(ctx,x,y,s,s,s*.225);ctx.fill();const cols=['#ff3b30','#ff9500','#34c759','#0a84ff'];cols.forEach((c,i)=>{ctx.fillStyle=c;ctx.beginPath();ctx.arc(x+s*.25,y+s*(.27+i*.16),s*.035,0,Math.PI*2);ctx.fill();line(ctx,'#b9b9bd',s*.025);ctx.beginPath();ctx.moveTo(x+s*.37,y+s*(.27+i*.16));ctx.lineTo(x+s*.78,y+s*(.27+i*.16));ctx.stroke()})}
+      else if(type==='notes'){ctx.fillStyle='#fff';roundedPath(ctx,x,y,s,s,s*.225);ctx.fill();ctx.fillStyle='#ffd60a';ctx.fillRect(x,y+s*.16,s,s*.19);for(let i=0;i<4;i++){line(ctx,'#c7c7cc',s*.018);ctx.beginPath();ctx.moveTo(x+s*.18,y+s*(.48+i*.12));ctx.lineTo(x+s*.82,y+s*(.48+i*.12));ctx.stroke()}}
+      else if(type==='stocks'){ctx.fillStyle='#050505';roundedPath(ctx,x,y,s,s,s*.225);ctx.fill();line(ctx,'#30d158',s*.038);ctx.beginPath();ctx.moveTo(x+s*.12,y+s*.67);ctx.lineTo(x+s*.34,y+s*.49);ctx.lineTo(x+s*.50,y+s*.59);ctx.lineTo(x+s*.78,y+s*.25);ctx.lineTo(x+s*.90,y+s*.35);ctx.stroke();line(ctx,'rgba(255,255,255,.16)',s*.012);for(let i=1;i<4;i++){ctx.beginPath();ctx.moveTo(x+s*.08,y+s*i*.2);ctx.lineTo(x+s*.92,y+s*i*.2);ctx.stroke()}}
+      else if(type==='books'){ctx.fillStyle='#ff9500';roundedPath(ctx,x,y,s,s,s*.225);ctx.fill();['#fff','#ffcc00','#fff'].forEach((c,i)=>{ctx.fillStyle=c;roundedPath(ctx,x+s*(.20+i*.20),y+s*.25,s*.14,s*.50,s*.035);ctx.fill()})}
+      else if(type==='appstore'){ctx.fillStyle='#0a84ff';roundedPath(ctx,x,y,s,s,s*.225);ctx.fill();line(ctx,'#fff',s*.075);ctx.beginPath();ctx.moveTo(x+s*.29,y+s*.71);ctx.lineTo(x+s*.52,y+s*.28);ctx.lineTo(x+s*.76,y+s*.71);ctx.moveTo(x+s*.22,y+s*.60);ctx.lineTo(x+s*.79,y+s*.60);ctx.stroke()}
+      else if(type==='podcasts'){ctx.fillStyle='#af52de';roundedPath(ctx,x,y,s,s,s*.225);ctx.fill();line(ctx,'#fff',s*.035);ctx.beginPath();ctx.arc(cx,y+s*.43,s*.16,Math.PI*.12,Math.PI*.88,true);ctx.stroke();ctx.beginPath();ctx.arc(cx,y+s*.43,s*.28,Math.PI*.16,Math.PI*.84,true);ctx.stroke();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx,y+s*.39,s*.07,0,Math.PI*2);ctx.fill();roundedPath(ctx,cx-s*.07,y+s*.50,s*.14,s*.28,s*.07);ctx.fill()}
+      else if(type==='tv'){ctx.fillStyle='#111';roundedPath(ctx,x,y,s,s,s*.225);ctx.fill();line(ctx,'#fff',s*.055);roundedPath(ctx,x+s*.19,y+s*.27,s*.62,s*.48,s*.10);ctx.stroke();ctx.beginPath();ctx.moveTo(x+s*.39,y+s*.17);ctx.lineTo(cx,y+s*.27);ctx.lineTo(x+s*.61,y+s*.17);ctx.stroke()}
+      else if(type==='health'){ctx.fillStyle='#fff';roundedPath(ctx,x,y,s,s,s*.225);ctx.fill();ctx.fillStyle='#ff2d55';ctx.beginPath();ctx.moveTo(cx,y+s*.74);ctx.bezierCurveTo(x+s*.14,y+s*.50,x+s*.29,y+s*.27,cx,y+s*.43);ctx.bezierCurveTo(x+s*.71,y+s*.27,x+s*.86,y+s*.50,cx,y+s*.74);ctx.fill()}
+      else if(type==='phone'){ctx.fillStyle='#fff';ctx.font=`700 ${s*.59}px -apple-system`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.save();ctx.translate(cx,cy);ctx.rotate(-.55);ctx.fillText('⌕',0,0);ctx.restore();line(ctx,'#fff',s*.12);ctx.beginPath();ctx.arc(cx,cy,s*.24,.68,2.46);ctx.stroke()}
+      else if(type==='safari'){ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx,cy,s*.36,0,Math.PI*2);ctx.fill();line(ctx,'#b7e5ff',s*.018);for(let i=0;i<8;i++){ctx.save();ctx.translate(cx,cy);ctx.rotate(i*Math.PI/4);ctx.beginPath();ctx.moveTo(0,-s*.31);ctx.lineTo(0,-s*.26);ctx.stroke();ctx.restore()}ctx.fillStyle='#ff3b30';ctx.beginPath();ctx.moveTo(cx+s*.04,cy-s*.04);ctx.lineTo(cx-s*.09,cy+s*.18);ctx.lineTo(cx-s*.03,cy+s*.02);ctx.closePath();ctx.fill();ctx.fillStyle='#0a84ff';ctx.beginPath();ctx.moveTo(cx-s*.04,cy+s*.04);ctx.lineTo(cx+s*.09,cy-s*.18);ctx.lineTo(cx+s*.03,cy-s*.02);ctx.closePath();ctx.fill()}
+      else if(type==='messages'){ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx,cy-s*.025,s*.29,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.moveTo(x+s*.36,y+s*.69);ctx.lineTo(x+s*.28,y+s*.80);ctx.lineTo(x+s*.50,y+s*.71);ctx.closePath();ctx.fill()}
+      else if(type==='music'){ctx.fillStyle='#fff';ctx.font=`700 ${s*.62}px -apple-system`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('♪',cx+s*.03,cy)}
+      ctx.restore();
+    }
+    function drawHomeScreen(base){
+      const c=document.createElement('canvas');c.width=HOME_W;c.height=HOME_H;const ctx=c.getContext('2d');drawCover(ctx,base,HOME_W,HOME_H);
+      ctx.fillStyle='#fff';ctx.shadowColor='rgba(0,0,0,.38)';ctx.shadowBlur=10;ctx.font='600 36px -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif';ctx.textAlign='left';ctx.textBaseline='middle';const time=new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});ctx.fillText(time,86,78);drawSignal(ctx,904,59);ctx.shadowBlur=0;
+      const apps=[['facetime','FaceTime','#34c759'],['calendar','Calendar','#fff'],['photos','Photos','#fff'],['camera','Camera','#aeb0b5'],['mail','Mail','#0a84ff'],['clock','Clock','#111'],['maps','Maps','#e9f3dd'],['weather','Weather','#0a84ff'],['reminders','Reminders','#fff'],['notes','Notes','#fff'],['stocks','Stocks','#050505'],['books','Books','#ff9500'],['appstore','App Store','#0a84ff'],['podcasts','Podcasts','#af52de'],['tv','TV','#111'],['health','Health','#fff']];
+      const icon=178,startX=98,startY=282,gapX=91,gapY=344;
+      apps.forEach((app,i)=>{const col=i%4,row=Math.floor(i/4),x=startX+col*(icon+gapX),y=startY+row*gapY;iconBase(ctx,x,y,icon,app[2]);drawAppGlyph(ctx,app[0],x,y,icon);ctx.fillStyle='#fff';ctx.shadowColor='rgba(0,0,0,.72)';ctx.shadowBlur=10;ctx.font='500 31px -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif';ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.fillText(app[1],x+icon/2,y+icon+47);ctx.shadowBlur=0});
+      const dockX=70,dockY=2174,dockW=1039,dockH=260;ctx.save();ctx.fillStyle='rgba(245,247,251,.30)';roundedPath(ctx,dockX,dockY,dockW,dockH,75);ctx.fill();ctx.restore();
+      const dock=[['phone','#34c759'],['safari','#fff'],['messages','#34c759'],['music','#ff2d55']];dock.forEach((app,i)=>{const x=126+i*267,y=2215;iconBase(ctx,x,y,178,app[1]);drawAppGlyph(ctx,app[0],x,y,178)});
+      ctx.fillStyle='rgba(255,255,255,.88)';roundedPath(ctx,HOME_W/2-160,2505,320,15,8);ctx.fill();return c;
+    }
+    function refreshTexture(){if(sourceImage)uploadImage(homeScreenOn?drawHomeScreen(sourceImage):sourceImage)}
+    function loadSource(src,revoke=false){
+      const img=new Image();
+      img.onload=()=>{sourceImage=img;refreshTexture();if(revoke)URL.revokeObjectURL(src)};
+      img.onerror=()=>{showStatus('Could not open that image · 이미지를 열 수 없습니다');if(revoke)URL.revokeObjectURL(src)};
+      img.src=src;
+    }
+    sourceImage=defaultWallpaper();refreshTexture();
+
+    function resize(){
+      const dpr=Math.min(devicePixelRatio||1,2.5);
+      const w=Math.max(1,Math.round(innerWidth*dpr)),h=Math.max(1,Math.round(innerHeight*dpr));
+      if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}
+    }
+
+    let targetAngle=0,displayAngle=0;
+    let motionRequested=false,motionData=false,previousGravityAngle=null,accumulated=0,motionTimer=0;
+    let dragging=false,dragMoved=false,dragStartX=0,dragStartAngle=0;
+    let lastFrame=performance.now();
+
+    const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+    const normalizeDelta=d=>((d+180)%360+360)%360-180;
+    function showStatus(message,duration=2600){status.textContent=message;status.classList.add('show');clearTimeout(showStatus.t);showStatus.t=setTimeout(()=>status.classList.remove('show'),duration)}
+    function motionStarted(){
+      if(motionData)return;
+      motionData=true;clearTimeout(motionTimer);notice.hidden=true;
+      motionButton.removeAttribute('aria-busy');motionButton.classList.add('active');motionButton.textContent='Motion on · 모션 켜짐';
+      showStatus('Motion is on · 모션이 켜졌습니다');
+    }
+
+    function handleMotion(event){
+      const gravity=event.accelerationIncludingGravity;
+      if(!gravity)return;
+      let x=gravity.x,y=gravity.y,z=gravity.z;
+      const linear=event.acceleration;
+      if(linear&&[linear.x,linear.y,linear.z].every(Number.isFinite)){
+        x-=linear.x;y-=linear.y;z-=linear.z;
+      }
+      if(![x,y,z].every(Number.isFinite)||Math.hypot(x,y,z)<0.5||Math.hypot(x,z)<0.5)return;
+      const angle=Math.atan2(x,-z)*180/Math.PI;
+      if(previousGravityAngle===null){previousGravityAngle=angle;accumulated=0}
+      else{accumulated=clamp(accumulated+normalizeDelta(angle-previousGravityAngle),-90,90);previousGravityAngle=angle}
+      targetAngle=clamp(-2*accumulated,-180,180);
+      motionStarted();
+    }
+
+    function addMotionListener(){
+      if(motionRequested)return;
+      window.addEventListener('devicemotion',handleMotion,{passive:true});
+      motionRequested=true;
+    }
+
+    function showPermissionHelp(reason){
+      motionButton.removeAttribute('aria-busy');motionButton.classList.remove('active');motionButton.textContent='Enable motion · 모션 켜기';
+      notice.hidden=false;
+      if(reason==='unsupported'){
+        noticeTitle.textContent='Motion not supported on this device';
+        noticeCopy.innerHTML='This browser does not provide device motion data. Drag left and right to preview the effect.<span>이 브라우저는 기기 모션 데이터를 지원하지 않습니다. 화면을 좌우로 드래그해 효과를 미리 볼 수 있습니다.</span>';
+      }else{
+        noticeTitle.textContent='Motion denied';
+        noticeCopy.innerHTML='Safari did not allow motion access. Check Settings → Apps → Safari → Motion & Orientation Access, reload, and tap Enable motion again.<span>Safari가 모션 접근을 허용하지 않았습니다. 설정 → 앱 → Safari → 동작 및 방향 접근을 확인하고 새로고침한 뒤 모션 켜기를 다시 눌러 주세요.</span>';
+      }
+    }
+
+    function armMotionTimeout(){
+      clearTimeout(motionTimer);
+      motionTimer=setTimeout(()=>{
+        if(!motionData){
+          motionButton.removeAttribute('aria-busy');motionButton.textContent='Enable motion · 모션 켜기';
+          notice.hidden=false;noticeTitle.textContent='No motion data — try the drag preview';
+          noticeCopy.innerHTML='Permission was accepted, but Safari sent no sensor data. Check Motion & Orientation Access, reload the page, and try once more. You can still drag left and right to preview.<span>권한은 허용됐지만 Safari에서 센서 데이터가 오지 않았습니다. 동작 및 방향 접근 설정을 확인하고 페이지를 새로고침한 뒤 다시 시도하세요. 좌우 드래그로도 미리 볼 수 있습니다.</span>';
+        }
+      },5000);
+    }
+    async function enableMotion(){
+      notice.hidden=true;motionData=false;previousGravityAngle=null;accumulated=0;
+      motionButton.setAttribute('aria-busy','true');motionButton.textContent='Requesting… · 요청 중';
+      showStatus('Requesting motion access… · 모션 권한 요청 중…',5000);
+      try{
+        if(typeof DeviceMotionEvent==='undefined'){
+          showPermissionHelp('unsupported');return;
+        }
+        if(typeof DeviceMotionEvent.requestPermission==='function'){
+          let result;
+          try{result=await DeviceMotionEvent.requestPermission()}catch(error){showPermissionHelp('denied');return}
+          if(result!=='granted'){showPermissionHelp('denied');return}
+        }
+        addMotionListener();
+        motionButton.textContent='Waiting for motion data… · 모션 데이터 대기 중';
+        armMotionTimeout();showStatus('Permission accepted — tilt left or right · 허용됨 — 좌우로 기울여 보세요',5000);
+      }catch(error){showPermissionHelp('denied')}
+    }
+
+    function render(now){
+      resize();
+      const dt=Math.min(0.1,Math.max(0,(now-lastFrame)/1000));lastFrame=now;
+      displayAngle+=(targetAngle-displayAngle)*(1-Math.exp(-dt*16));
+      const turn=Math.min(Math.abs(displayAngle)/180,1);
+      gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,canvas.width,canvas.height);gl.disable(gl.BLEND);gl.clearColor(0.003,0.004,0.005,1);gl.clear(gl.COLOR_BUFFER_BIT);
+      if(imageReady){
+        gl.useProgram(renderProgram);gl.bindVertexArray(vao);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,imageTexture);
+        gl.uniform1i(gl.getUniformLocation(renderProgram,'u_image'),0);
+        gl.uniform2f(gl.getUniformLocation(renderProgram,'u_imageSize'),imageWidth,imageHeight);
+        gl.uniform1f(gl.getUniformLocation(renderProgram,'u_aspect'),canvas.width/canvas.height);
+        gl.uniform1f(gl.getUniformLocation(renderProgram,'u_turn'),turn);
+        gl.uniform1f(gl.getUniformLocation(renderProgram,'u_phase'),displayAngle>=0?1:0);
+        gl.uniform3f(gl.getUniformLocation(renderProgram,'u_blurAngle'),0.0315,90,0.5);
+        gl.uniform3f(gl.getUniformLocation(renderProgram,'u_blurSpread'),0.7,1.45,0.18);
+        gl.uniform3f(gl.getUniformLocation(renderProgram,'u_blackGradient'),0.7,0.26,1);
+        gl.drawArrays(gl.TRIANGLES,0,6);
+      }
+      requestAnimationFrame(render);
+    }
+    requestAnimationFrame(render);
+
+    homeScreenButton.addEventListener('click',event=>{
+      event.stopPropagation();homeScreenOn=!homeScreenOn;homeScreenButton.classList.toggle('active',homeScreenOn);homeScreenButton.setAttribute('aria-pressed',String(homeScreenOn));
+      homeScreenButton.innerHTML=homeScreenOn?'Icons on <span class="desktop-extra">· 아이콘 켜짐</span>':'Icons off <span class="desktop-extra">· 아이콘 꺼짐</span>';
+      refreshTexture();showStatus(homeScreenOn?'Home screen icons on · 홈 화면 아이콘 켜짐':'Wallpaper only · 배경화면만 표시');
+    });
+    motionButton.addEventListener('click',event=>{event.stopPropagation();enableMotion()});
+    retryButton.addEventListener('click',enableMotion);
+    fileInput.addEventListener('click',event=>event.stopPropagation());
+    fileInput.addEventListener('change',()=>{
+      const chosen=fileInput.files&&fileInput.files[0];if(!chosen)return;
+      if(!chosen.type.startsWith('image/')){showStatus('Choose an image file · 이미지 파일을 골라 주세요');return}
+      loadSource(URL.createObjectURL(chosen),true);chrome.classList.remove('hidden');showStatus('Image ready · 이미지 준비 완료');
+    });
+    fullscreenButton.addEventListener('click',async event=>{
+      event.stopPropagation();
+      try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen();else await document.exitFullscreen()}
+      catch(_){showStatus('Use Add to Home Screen for fullscreen · 홈 화면에 추가하면 전체 화면으로 볼 수 있어요')}
+    });
+
+    canvas.addEventListener('pointerdown',event=>{
+      if(motionData)return;
+      dragging=true;dragMoved=false;dragStartX=event.clientX;dragStartAngle=targetAngle;canvas.classList.add('dragging');canvas.setPointerCapture(event.pointerId);
+    });
+    canvas.addEventListener('pointermove',event=>{
+      if(!dragging)return;
+      const delta=event.clientX-dragStartX;if(Math.abs(delta)>4)dragMoved=true;
+      targetAngle=clamp(dragStartAngle+(delta/Math.max(innerWidth,320))*360,-180,180);
+    });
+    function endDrag(){dragging=false;canvas.classList.remove('dragging')}
+    canvas.addEventListener('pointerup',event=>{if(!dragging)return;endDrag();if(!dragMoved)chrome.classList.toggle('hidden')});
+    canvas.addEventListener('pointercancel',endDrag);
+    canvas.addEventListener('keydown',event=>{
+      if(event.key==='ArrowRight'||event.key==='ArrowLeft'){
+        event.preventDefault();targetAngle=clamp(targetAngle+(event.key==='ArrowRight'?36:-36),-180,180);
+      }else if(event.key==='Home'){event.preventDefault();targetAngle=0}
+    });
+    canvas.addEventListener('click',()=>{if(motionData)chrome.classList.toggle('hidden')});
+    window.addEventListener('resize',resize,{passive:true});
+  })();
+  </script>
+</body>
+</html>
