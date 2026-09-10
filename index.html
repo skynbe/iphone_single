@@ -17,6 +17,13 @@
   <meta name="twitter:image" content="https://seoseong.uk/iphone_single/thumbnail.png?v=2">
   <link rel="icon" href="data:,">
   <title>iPhone Single</title>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-44J8G3BYMX"></script>
+  <script>
+    window.dataLayer=window.dataLayer||[];
+    function gtag(){dataLayer.push(arguments)}
+    gtag('js',new Date());
+    gtag('config','G-44J8G3BYMX');
+  </script>
   <style>
     :root{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;color:#fff;background:#000}
     *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -34,8 +41,8 @@
     .icon{padding:0;width:44px}
     .icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
     .bottom{position:absolute;left:50%;bottom:max(17px,calc(env(safe-area-inset-bottom) + 10px));transform:translateX(-50%);width:min(94vw,650px);display:flex;flex-direction:column;align-items:center;gap:10px}
-    .actions{position:fixed;right:10px;bottom:max(10px,env(safe-area-inset-bottom));display:flex;width:auto}
-    .actions>.pick{width:auto;min-width:0;height:29px;padding:0 9px;overflow:hidden;font-size:9px;letter-spacing:-.01em;flex-direction:row;gap:4px;background:rgba(20,20,22,.48);box-shadow:inset 0 1px rgba(255,255,255,.1),0 4px 14px rgba(0,0,0,.18)}
+    .actions{position:fixed;right:10px;bottom:max(10px,env(safe-area-inset-bottom));display:flex;width:auto;gap:6px}
+    .actions>.pick,.actions>button{width:auto;min-width:0;height:29px;padding:0 9px;overflow:hidden;font-size:9px;letter-spacing:-.01em;flex-direction:row;gap:4px;background:rgba(20,20,22,.48);box-shadow:inset 0 1px rgba(255,255,255,.1),0 4px 14px rgba(0,0,0,.18)}
     .pick input{display:none}
     .hint{margin-bottom:73px;padding:4px 9px;border-radius:8px;background:rgba(0,0,0,.17);text-align:center;font-size:12px;font-weight:520;line-height:1.45;color:rgba(255,255,255,.86);text-shadow:0 2px 12px rgba(0,0,0,.9)}
     @media(orientation:landscape) and (min-height:521px){.hint{margin-bottom:169px}}
@@ -52,7 +59,7 @@
     .prompt-actions .primary{background:rgba(246,246,248,.94);border-color:transparent;color:#111;box-shadow:0 5px 18px rgba(0,0,0,.2)}
     .status{position:fixed;z-index:8;left:50%;bottom:max(86px,calc(env(safe-area-inset-bottom) + 78px));max-width:90vw;transform:translate(-50%,8px);padding:10px 14px;border:1px solid rgba(255,255,255,.15);border-radius:13px;background:rgba(18,18,20,.66);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);font-size:12px;line-height:1.3;opacity:0;visibility:hidden;transition:opacity .16s ease,transform .16s ease,visibility 0s linear .16s;pointer-events:none;text-align:center}
     .status.show{opacity:1;visibility:visible;transform:translate(-50%,0);transition-delay:0s}
-    @media(max-width:430px){button{height:44px;min-width:0;padding:6px 8px;font-size:11px;gap:2px}.actions>.pick{height:29px;padding:0 8px;font-size:9px;flex-direction:row;gap:4px}.prompt-actions button{height:36px;min-width:112px;padding:0 16px;font-size:12px;flex-direction:row}.hint{font-size:11px}.hint span{font-size:10px}.desktop-extra{display:none}}
+    @media(max-width:430px){button{height:44px;min-width:0;padding:6px 8px;font-size:11px;gap:2px}.actions>.pick,.actions>button{height:29px;padding:0 8px;font-size:9px;flex-direction:row;gap:4px}.prompt-actions button{height:36px;min-width:112px;padding:0 16px;font-size:12px;flex-direction:row}.hint{font-size:11px}.hint span{font-size:10px}.desktop-extra{display:none}}
     @media(max-height:520px){.hint{display:none}.bottom{bottom:max(8px,env(safe-area-inset-bottom))}.notice{padding:18px}.notice p{margin-bottom:12px}}
     @media(prefers-reduced-motion:reduce){.chrome,.status{transition:none}}
   </style>
@@ -70,6 +77,7 @@
       <div class="hint" id="hint">Tilt left or right.<span>좌우로 기울여보세요</span></div>
       <div class="actions">
         <label class="pick">Change background <span class="desktop-extra">· 배경 바꾸기</span><input id="file" type="file" accept="image/*"></label>
+        <button id="reset-tilt" type="button" aria-label="Reset tilt to the current device angle">Reset Tilt</button>
       </div>
     </div>
   </div>
@@ -96,6 +104,7 @@
     const chrome=document.querySelector('#chrome');
     const bottomControls=document.querySelector('.bottom');
     const fileInput=document.querySelector('#file');
+    const resetTiltButton=document.querySelector('#reset-tilt');
     const fullscreenButton=document.querySelector('#fullscreen');
     const motionBackdrop=document.querySelector('#motion-backdrop');
     const motionPrompt=document.querySelector('#motion-prompt');
@@ -546,6 +555,12 @@
     requestAnimationFrame(render);
 
     allowMotionButton.addEventListener('click',event=>{event.stopPropagation();enableMotion()});
+    resetTiltButton.addEventListener('click',event=>{
+      event.stopPropagation();
+      accumulated=0;
+      targetAngle=0;
+      showStatus(motionData?'Current angle set as neutral · 현재 각도를 기준으로 설정했습니다':'Tilt reset · 틸트를 초기화했습니다');
+    });
     motionBackdrop.addEventListener('click',closeMotionPrompt);
     retryButton.addEventListener('click',enableMotion);
     const isiOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
