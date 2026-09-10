@@ -6,6 +6,14 @@
   <meta name="theme-color" content="#000000">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta property="og:title" content="iPhone Single">
+  <meta property="og:description" content="Tilt your iPhone — the screen becomes a window.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://seoseong.uk/iphone_single/">
+  <meta property="og:image" content="https://seoseong.uk/iphone_single/thumbnail.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="iPhone Single">
+  <meta name="twitter:description" content="Tilt your iPhone — the screen becomes a window.">
   <link rel="icon" href="data:,">
   <title>iPhone Single</title>
   <style>
@@ -243,7 +251,7 @@
     }
 
     const HOME_W=1179,HOME_H=2556;
-    let sourceImage=null,homeScreenOn=true;
+    let sourceImage=null,homeScreenOn=true,textureViewportWidth=0,textureViewportHeight=0;
     function roundedPath(ctx,x,y,w,h,r){
       const rr=Math.min(r,w/2,h/2);ctx.beginPath();ctx.moveTo(x+rr,y);ctx.arcTo(x+w,y,x+w,y+h,rr);ctx.arcTo(x+w,y+h,x,y+h,rr);ctx.arcTo(x,y+h,x,y,rr);ctx.arcTo(x,y,x+w,y,rr);ctx.closePath();
     }
@@ -288,30 +296,70 @@
       else if(type==='music'){ctx.fillStyle='#fff';ctx.font=`700 ${s*.62}px -apple-system`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('♪',cx+s*.03,cy)}
       ctx.restore();
     }
-    function drawHomeScreen(base){
-      const c=document.createElement('canvas');c.width=HOME_W;c.height=HOME_H;const ctx=c.getContext('2d');drawCover(ctx,base,HOME_W,HOME_H);
-      ctx.fillStyle='#fff';ctx.shadowColor='rgba(0,0,0,.38)';ctx.shadowBlur=10;ctx.font='600 36px -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif';ctx.textAlign='left';ctx.textBaseline='middle';const time=new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});ctx.fillText(time,86,78);drawSignal(ctx,904,59);ctx.shadowBlur=0;
-      const apps=[['facetime','FaceTime','#34c759'],['calendar','Calendar','#fff'],['photos','Photos','#fff'],['camera','Camera','#aeb0b5'],['mail','Mail','#0a84ff'],['clock','Clock','#111'],['maps','Maps','#e9f3dd'],['weather','Weather','#0a84ff'],['reminders','Reminders','#fff'],['notes','Notes','#fff'],['stocks','Stocks','#050505'],['books','Books','#ff9500'],['appstore','App Store','#0a84ff'],['podcasts','Podcasts','#af52de'],['tv','TV','#111'],['health','Health','#fff']];
-      const icon=178,startX=98,startY=282,gapX=91,gapY=344;
-      apps.forEach((app,i)=>{const col=i%4,row=Math.floor(i/4),x=startX+col*(icon+gapX),y=startY+row*gapY;iconBase(ctx,x,y,icon,app[2]);drawAppGlyph(ctx,app[0],x,y,icon);ctx.fillStyle='#fff';ctx.shadowColor='rgba(0,0,0,.72)';ctx.shadowBlur=10;ctx.font='500 31px -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif';ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.fillText(app[1],x+icon/2,y+icon+47);ctx.shadowBlur=0});
-      const dockX=70,dockY=2174,dockW=1039,dockH=260;ctx.save();ctx.fillStyle='rgba(245,247,251,.30)';roundedPath(ctx,dockX,dockY,dockW,dockH,75);ctx.fill();ctx.restore();
-      const dock=[['phone','#34c759'],['safari','#fff'],['messages','#34c759'],['music','#ff2d55']];dock.forEach((app,i)=>{const x=126+i*267,y=2215;iconBase(ctx,x,y,178,app[1]);drawAppGlyph(ctx,app[0],x,y,178)});
-      ctx.fillStyle='rgba(255,255,255,.88)';roundedPath(ctx,HOME_W/2-160,2505,320,15,8);ctx.fill();return c;
+    function viewportTextureSize(){
+      const dpr=Math.min(devicePixelRatio||1,2.5);
+      return {width:Math.max(1,Math.round(innerWidth*dpr)),height:Math.max(1,Math.round(innerHeight*dpr))};
     }
-    function refreshTexture(){if(sourceImage)uploadImage(homeScreenOn?drawHomeScreen(sourceImage):sourceImage)}
+    function drawViewportWallpaper(base,width,height){
+      const c=document.createElement('canvas');c.width=width;c.height=height;drawCover(c.getContext('2d'),base,width,height);return c;
+    }
+    function drawHomeScreen(base,width,height){
+      const c=document.createElement('canvas');c.width=width;c.height=height;const ctx=c.getContext('2d');drawCover(ctx,base,width,height);
+      const landscape=width>height;
+      const unit=Math.min(width,height)/HOME_W;
+      const statusY=78*unit;
+      ctx.fillStyle='#fff';ctx.shadowColor='rgba(0,0,0,.38)';ctx.shadowBlur=10*unit;ctx.font=`600 ${36*unit}px -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif`;ctx.textAlign='left';ctx.textBaseline='middle';
+      const time=new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});ctx.fillText(time,86*unit,statusY);
+      ctx.save();ctx.translate(width-275*unit,59*unit);ctx.scale(unit,unit);drawSignal(ctx,0,0);ctx.restore();ctx.shadowBlur=0;
+
+      const apps=[['facetime','FaceTime','#34c759'],['calendar','Calendar','#fff'],['photos','Photos','#fff'],['camera','Camera','#aeb0b5'],['mail','Mail','#0a84ff'],['clock','Clock','#111'],['maps','Maps','#e9f3dd'],['weather','Weather','#0a84ff'],['reminders','Reminders','#fff'],['notes','Notes','#fff'],['stocks','Stocks','#050505'],['books','Books','#ff9500'],['appstore','App Store','#0a84ff'],['podcasts','Podcasts','#af52de'],['tv','TV','#111'],['health','Health','#fff']];
+      const columns=landscape?8:4,rows=Math.ceil(apps.length/columns);
+      const side=landscape?58*unit:98*unit;
+      const dockBottom=(landscape?54:122)*unit;
+      const dockHeight=Math.min((landscape?238:260)*unit,height*.28);
+      const dockWidth=Math.min(1039*unit,width-2*side);
+      const dockX=(width-dockWidth)/2,dockY=height-dockBottom-dockHeight;
+      const gridTop=(landscape?150:282)*unit;
+      const gridBottom=dockY-(landscape?100:210)*unit;
+      const maxByWidth=(width-2*side)/(columns+(columns-1)*.51);
+      const maxByHeight=(gridBottom-gridTop)/(rows+(rows-1)*.93);
+      const icon=Math.max(1,Math.min(178*unit,maxByWidth,maxByHeight));
+      const xStep=columns>1?(width-2*side-icon)/(columns-1):0;
+      const yStep=rows>1?Math.min(344*unit,(gridBottom-gridTop-icon)/(rows-1)):0;
+      apps.forEach((app,i)=>{
+        const col=i%columns,row=Math.floor(i/columns),x=side+col*xStep,y=gridTop+row*yStep;
+        iconBase(ctx,x,y,icon,app[2]);drawAppGlyph(ctx,app[0],x,y,icon);
+        ctx.fillStyle='#fff';ctx.shadowColor='rgba(0,0,0,.72)';ctx.shadowBlur=10*unit;ctx.font=`500 ${Math.max(11*unit,icon*.174)}px -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif`;ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.fillText(app[1],x+icon/2,y+icon+icon*.264);ctx.shadowBlur=0;
+      });
+
+      ctx.save();ctx.fillStyle='rgba(245,247,251,.30)';roundedPath(ctx,dockX,dockY,dockWidth,dockHeight,75*unit);ctx.fill();ctx.restore();
+      const dock=[['phone','#34c759'],['safari','#fff'],['messages','#34c759'],['music','#ff2d55']];
+      const dockIcon=Math.min(icon,dockHeight-82*unit,(dockWidth-112*unit)/5.5);
+      const dockInset=56*unit;const dockStep=(dockWidth-2*dockInset-dockIcon)/3;const dockIconY=dockY+(dockHeight-dockIcon)/2;
+      dock.forEach((app,i)=>{const x=dockX+dockInset+i*dockStep;iconBase(ctx,x,dockIconY,dockIcon,app[1]);drawAppGlyph(ctx,app[0],x,dockIconY,dockIcon)});
+      ctx.fillStyle='rgba(255,255,255,.88)';roundedPath(ctx,width/2-160*unit,height-51*unit,320*unit,15*unit,8*unit);ctx.fill();return c;
+    }
+    function refreshTexture(width,height){
+      if(!sourceImage)return;
+      const size=width&&height?{width,height}:viewportTextureSize();
+      textureViewportWidth=size.width;textureViewportHeight=size.height;
+      uploadImage(homeScreenOn?drawHomeScreen(sourceImage,size.width,size.height):drawViewportWallpaper(sourceImage,size.width,size.height));
+    }
     function loadSource(src,revoke=false){
       const img=new Image();
       img.onload=()=>{sourceImage=img;refreshTexture();if(revoke)URL.revokeObjectURL(src)};
       img.onerror=()=>{showStatus('Could not open that image · 이미지를 열 수 없습니다');if(revoke)URL.revokeObjectURL(src)};
       img.src=src;
     }
-    sourceImage=defaultWallpaper();refreshTexture();
+    sourceImage=defaultWallpaper();
 
-    function resize(){
-      const dpr=Math.min(devicePixelRatio||1,2.5);
-      const w=Math.max(1,Math.round(innerWidth*dpr)),h=Math.max(1,Math.round(innerHeight*dpr));
-      if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}
+    function resize(forceTexture=false){
+      const {width:w,height:h}=viewportTextureSize();
+      const changed=canvas.width!==w||canvas.height!==h;
+      if(changed){canvas.width=w;canvas.height=h}
+      if(sourceImage&&(forceTexture||changed||textureViewportWidth!==w||textureViewportHeight!==h))refreshTexture(w,h);
     }
+    resize(true);
 
     let targetAngle=0,displayAngle=0;
     let motionRequested=false,motionData=false,previousGravityAngle=null,accumulated=0,motionTimer=0;
