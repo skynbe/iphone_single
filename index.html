@@ -314,18 +314,18 @@
 
       const apps=[['facetime','FaceTime','#34c759'],['calendar','Calendar','#fff'],['photos','Photos','#fff'],['camera','Camera','#aeb0b5'],['mail','Mail','#0a84ff'],['clock','Clock','#111'],['maps','Maps','#e9f3dd'],['weather','Weather','#0a84ff'],['reminders','Reminders','#fff'],['notes','Notes','#fff'],['stocks','Stocks','#050505'],['books','Books','#ff9500'],['appstore','App Store','#0a84ff'],['podcasts','Podcasts','#af52de'],['tv','TV','#111'],['health','Health','#fff']];
       const columns=landscape?8:4,rows=Math.ceil(apps.length/columns);
-      const side=landscape?58*unit:98*unit;
+      const side=landscape?58*unit:width*.045;
       const dockBottom=(landscape?54:122)*unit;
-      const dockHeight=Math.min((landscape?238:260)*unit,height*.28);
+      const dockHeight=Math.min((landscape?238:282)*unit,height*.28);
       const dockWidth=Math.min(1039*unit,width-2*side);
       const dockX=(width-dockWidth)/2,dockY=height-dockBottom-dockHeight;
       const gridTop=(landscape?150:282)*unit;
       const gridBottom=dockY-(landscape?100:210)*unit;
-      const maxByWidth=(width-2*side)/(columns+(columns-1)*.51);
-      const maxByHeight=(gridBottom-gridTop)/(rows+(rows-1)*.93);
-      const icon=Math.max(1,Math.min(178*unit,maxByWidth,maxByHeight));
+      const maxByWidth=(width-2*side)/(columns+(columns-1)*.37);
+      const maxByHeight=(gridBottom-gridTop)/(rows+(rows-1)*.61);
+      const icon=Math.max(1,Math.min(landscape?178*unit:width*.18,maxByWidth,maxByHeight));
       const xStep=columns>1?(width-2*side-icon)/(columns-1):0;
-      const yStep=rows>1?Math.min(344*unit,(gridBottom-gridTop-icon)/(rows-1)):0;
+      const yStep=rows>1?Math.min(icon*1.61,(gridBottom-gridTop-icon)/(rows-1)):0;
       apps.forEach((app,i)=>{
         const col=i%columns,row=Math.floor(i/columns),x=side+col*xStep,y=gridTop+row*yStep;
         iconBase(ctx,x,y,icon,app[2]);drawAppGlyph(ctx,app[0],x,y,icon);
@@ -334,8 +334,9 @@
 
       ctx.save();ctx.fillStyle='rgba(245,247,251,.30)';roundedPath(ctx,dockX,dockY,dockWidth,dockHeight,75*unit);ctx.fill();ctx.restore();
       const dock=[['phone','#34c759'],['safari','#fff'],['messages','#34c759'],['music','#ff2d55']];
-      const dockIcon=Math.min(icon,dockHeight-82*unit,(dockWidth-112*unit)/5.5);
-      const dockInset=56*unit;const dockStep=(dockWidth-2*dockInset-dockIcon)/3;const dockIconY=dockY+(dockHeight-dockIcon)/2;
+      const dockInset=(landscape?56:42)*unit;
+      const dockIcon=Math.min(icon,dockHeight-(landscape?82:50)*unit,(dockWidth-2*dockInset)/(landscape?5.5:4.54));
+      const dockStep=(dockWidth-2*dockInset-dockIcon)/3;const dockIconY=dockY+(dockHeight-dockIcon)/2;
       dock.forEach((app,i)=>{const x=dockX+dockInset+i*dockStep;iconBase(ctx,x,dockIconY,dockIcon,app[1]);drawAppGlyph(ctx,app[0],x,dockIconY,dockIcon)});
       ctx.fillStyle='rgba(255,255,255,.88)';roundedPath(ctx,width/2-160*unit,height-51*unit,320*unit,15*unit,8*unit);ctx.fill();return c;
     }
