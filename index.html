@@ -33,10 +33,11 @@
     .top{position:absolute;top:max(12px,env(safe-area-inset-top));right:12px;display:flex;gap:8px}
     .icon{padding:0;width:44px}
     .icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-    .bottom{position:absolute;left:50%;bottom:max(17px,calc(env(safe-area-inset-bottom) + 10px));transform:translateX(-50%);width:min(94vw,520px);display:flex;flex-direction:column;align-items:center;gap:10px}
-    .actions{display:flex;justify-content:center;gap:8px;max-width:100%;flex-wrap:wrap}
+    .bottom{position:absolute;left:50%;bottom:max(17px,calc(env(safe-area-inset-bottom) + 10px));transform:translateX(-50%);width:min(94vw,650px);display:flex;flex-direction:column;align-items:center;gap:10px}
+    .actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%;max-width:100%}
+    .actions>button,.actions>.pick{width:100%;min-width:0;padding-inline:10px;overflow:hidden}
     .pick input{display:none}
-    .hint{padding:4px 9px;border-radius:8px;background:rgba(0,0,0,.11);text-align:center;font-size:12px;font-weight:520;line-height:1.45;color:rgba(255,255,255,.86);text-shadow:0 2px 12px rgba(0,0,0,.9)}
+    .hint{margin-bottom:24px;padding:4px 9px;border-radius:8px;background:rgba(0,0,0,.11);text-align:center;font-size:12px;font-weight:520;line-height:1.45;color:rgba(255,255,255,.86);text-shadow:0 2px 12px rgba(0,0,0,.9)}
     .hint span{display:block;color:rgba(255,255,255,.62);font-size:11px}
     .motion.active{background:rgba(246,246,248,.9);border-color:transparent;color:#111}
     .notice{position:fixed;z-index:7;left:50%;top:50%;width:min(88vw,370px);transform:translate(-50%,-50%);padding:25px 22px;border:1px solid rgba(255,255,255,.17);border-radius:24px;background:rgba(17,17,19,.78);box-shadow:0 22px 70px rgba(0,0,0,.48);-webkit-backdrop-filter:blur(24px) saturate(1.2);backdrop-filter:blur(24px) saturate(1.2);text-align:center}
@@ -46,7 +47,7 @@
     .notice p span{display:block;margin-top:3px;color:rgba(255,255,255,.5)}
     .status{position:fixed;z-index:8;left:50%;bottom:max(86px,calc(env(safe-area-inset-bottom) + 78px));max-width:90vw;transform:translate(-50%,8px);padding:10px 14px;border:1px solid rgba(255,255,255,.15);border-radius:13px;background:rgba(18,18,20,.78);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);font-size:12px;line-height:1.3;opacity:0;transition:.2s;pointer-events:none;text-align:center}
     .status.show{opacity:1;transform:translate(-50%,0)}
-    @media(max-width:430px){button,.pick{height:50px;min-width:0;padding:7px 14px;font-size:12px;flex-direction:column;gap:2px}.actions{gap:7px}.hint{font-size:11px}.hint span{font-size:10px}.desktop-extra{display:block;font-size:10px;font-weight:520;opacity:.68}}
+    @media(max-width:430px){button,.pick{height:50px;min-width:0;padding:7px 5px;font-size:clamp(10px,3vw,12px);flex-direction:column;gap:2px}.actions{gap:7px}.hint{font-size:11px}.hint span{font-size:10px}.desktop-extra{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;font-size:10px;font-weight:520;opacity:.68}}
     @media(max-height:520px){.hint{display:none}.bottom{bottom:max(8px,env(safe-area-inset-bottom))}.notice{padding:18px}.notice p{margin-bottom:12px}}
     @media(prefers-reduced-motion:reduce){.chrome,.status{transition:none}}
   </style>
@@ -61,7 +62,7 @@
       </button>
     </div>
     <div class="bottom">
-      <div class="hint" id="hint">Face the screen toward the sky, then tilt left or right.<span>화면을 하늘로 향하게 들고 좌우로 기울이세요</span></div>
+      <div class="hint" id="hint">Tilt left or right.<span>좌우로 기울여보세요</span></div>
       <div class="actions">
         <label class="pick">Choose image <span class="desktop-extra">· 사진 고르기</span><input id="file" type="file" accept="image/*"></label>
         <button class="motion active" id="homescreen" aria-pressed="true">Icons on <span class="desktop-extra">· 아이콘 켜짐</span></button>
@@ -431,10 +432,11 @@
       status.style.bottom=`${Math.max(10,innerHeight-controlsTop+10)}px`;
     }
     function showStatus(message,duration=2600){positionStatus();status.textContent=message;status.classList.add('show');clearTimeout(showStatus.t);showStatus.t=setTimeout(()=>status.classList.remove('show'),duration)}
+    function setMotionLabel(english,korean){motionButton.innerHTML=`${english} <span class="desktop-extra">· ${korean}</span>`}
     function motionStarted(){
       if(motionData)return;
       motionData=true;permissionDenials=0;clearTimeout(motionTimer);notice.hidden=true;
-      motionButton.removeAttribute('aria-busy');motionButton.classList.add('active');motionButton.textContent='Motion on · 모션 켜짐';
+      motionButton.removeAttribute('aria-busy');motionButton.classList.add('active');setMotionLabel('Motion on','모션 켜짐');
       showStatus('Motion is on · 모션이 켜졌습니다');
     }
 
@@ -461,7 +463,7 @@
     }
 
     function showPermissionHelp(reason){
-      motionButton.removeAttribute('aria-busy');motionButton.classList.remove('active');motionButton.textContent='Enable motion · 모션 켜기';
+      motionButton.removeAttribute('aria-busy');motionButton.classList.remove('active');setMotionLabel('Enable motion','모션 켜기');
       notice.hidden=false;
       if(reason==='unsupported'){
         retryButton.hidden=true;
@@ -470,22 +472,16 @@
         return;
       }
       permissionDenials+=1;
-      if(permissionDenials===1){
-        retryButton.hidden=false;retryButton.textContent='Retry motion · 다시 시도';
-        noticeTitle.textContent='Motion access was denied';
-        noticeCopy.innerHTML='If you dismissed the request by mistake, try once more. If Safari denies it again, turn on Settings → Safari → Motion & Orientation Access, then reload this page.<span>권한 요청을 실수로 닫았다면 한 번 더 시도하세요. 다시 거부되면 설정 → Safari → 동작 및 방향 접근을 켠 뒤 이 페이지를 새로고침하세요.</span>';
-      }else{
-        retryButton.hidden=true;
-        noticeTitle.textContent='Motion access is still off';
-        noticeCopy.innerHTML='Safari won’t show the permission request again after access is denied. Turn on Settings → Safari → Motion & Orientation Access, then reload this page. You can still drag left and right to preview.<span>Safari는 한 번 거부된 권한 요청을 다시 띄우지 않습니다. 설정 → Safari → 동작 및 방향 접근을 켠 뒤 이 페이지를 새로고침하세요. 좌우 드래그로도 미리 볼 수 있습니다.</span>';
-      }
+      retryButton.hidden=false;retryButton.textContent='Enable motion · 모션 켜기';
+      noticeTitle.textContent=permissionDenials===1?'Motion access was denied':'Motion access is still off';
+      noticeCopy.innerHTML='Safari may not show the system prompt again after access is denied. Turn on Settings → Safari → Motion & Orientation Access, return here, then press Enable motion again.<span>설정 &gt; Safari &gt; 동작 및 방향 접근을 켠 뒤 다시 버튼을 눌러주세요.</span>';
     }
 
     function armMotionTimeout(){
       clearTimeout(motionTimer);
       motionTimer=setTimeout(()=>{
         if(!motionData){
-          motionButton.removeAttribute('aria-busy');motionButton.textContent='Enable motion · 모션 켜기';
+          motionButton.removeAttribute('aria-busy');setMotionLabel('Enable motion','모션 켜기');
           retryButton.hidden=false;retryButton.textContent='Retry motion · 다시 시도';
           notice.hidden=false;noticeTitle.textContent='No motion data — try the drag preview';
           noticeCopy.innerHTML='Permission was accepted, but Safari sent no sensor data. Check Motion & Orientation Access, reload the page, and try once more. You can still drag left and right to preview.<span>권한은 허용됐지만 Safari에서 센서 데이터가 오지 않았습니다. 동작 및 방향 접근 설정을 확인하고 페이지를 새로고침한 뒤 다시 시도하세요. 좌우 드래그로도 미리 볼 수 있습니다.</span>';
@@ -494,7 +490,7 @@
     }
     async function enableMotion(){
       notice.hidden=true;motionData=false;previousGravityAngle=null;accumulated=0;
-      motionButton.setAttribute('aria-busy','true');motionButton.textContent='Requesting… · 요청 중';
+      motionButton.setAttribute('aria-busy','true');setMotionLabel('Requesting…','요청 중');
       showStatus('Requesting motion access… · 모션 권한 요청 중…',5000);
       try{
         if(typeof DeviceMotionEvent==='undefined'){
@@ -506,7 +502,7 @@
           if(result!=='granted'){showPermissionHelp('denied');return}
         }
         addMotionListener();
-        motionButton.textContent='Waiting for motion data… · 모션 데이터 대기 중';
+        setMotionLabel('Waiting…','모션 대기 중');
         armMotionTimeout();showStatus('Permission accepted — tilt left or right · 허용됨 — 좌우로 기울여 보세요',5000);
       }catch(error){showPermissionHelp('denied')}
     }
@@ -565,7 +561,7 @@
       targetAngle=clamp(dragStartAngle+(delta/Math.max(innerWidth,320))*360,-180,180);
     });
     function endDrag(){dragging=false;canvas.classList.remove('dragging')}
-    canvas.addEventListener('pointerup',event=>{if(!dragging)return;endDrag();if(!dragMoved)chrome.classList.toggle('hidden')});
+    canvas.addEventListener('pointerup',event=>{if(!dragging)return;endDrag()});
     canvas.addEventListener('pointercancel',endDrag);
     canvas.addEventListener('keydown',event=>{
       if(event.key==='ArrowRight'||event.key==='ArrowLeft'){
