@@ -10,10 +10,11 @@
   <meta property="og:description" content="Tilt your iPhone — the screen becomes a window.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://seoseong.uk/iphone_single/">
-  <meta property="og:image" content="https://seoseong.uk/iphone_single/thumbnail.png">
+  <meta property="og:image" content="https://seoseong.uk/iphone_single/thumbnail.png?v=2">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="iPhone Single">
   <meta name="twitter:description" content="Tilt your iPhone — the screen becomes a window.">
+  <meta name="twitter:image" content="https://seoseong.uk/iphone_single/thumbnail.png?v=2">
   <link rel="icon" href="data:,">
   <title>iPhone Single</title>
   <style>
@@ -35,7 +36,7 @@
     .bottom{position:absolute;left:50%;bottom:max(17px,calc(env(safe-area-inset-bottom) + 10px));transform:translateX(-50%);width:min(94vw,520px);display:flex;flex-direction:column;align-items:center;gap:10px}
     .actions{display:flex;justify-content:center;gap:8px;max-width:100%;flex-wrap:wrap}
     .pick input{display:none}
-    .hint{text-align:center;font-size:12px;font-weight:520;line-height:1.45;color:rgba(255,255,255,.86);text-shadow:0 2px 12px rgba(0,0,0,.9)}
+    .hint{padding:4px 9px;border-radius:8px;background:rgba(0,0,0,.11);text-align:center;font-size:12px;font-weight:520;line-height:1.45;color:rgba(255,255,255,.86);text-shadow:0 2px 12px rgba(0,0,0,.9)}
     .hint span{display:block;color:rgba(255,255,255,.62);font-size:11px}
     .motion.active{background:rgba(246,246,248,.9);border-color:transparent;color:#111}
     .notice{position:fixed;z-index:7;left:50%;top:50%;width:min(88vw,370px);transform:translate(-50%,-50%);padding:25px 22px;border:1px solid rgba(255,255,255,.17);border-radius:24px;background:rgba(17,17,19,.78);box-shadow:0 22px 70px rgba(0,0,0,.48);-webkit-backdrop-filter:blur(24px) saturate(1.2);backdrop-filter:blur(24px) saturate(1.2);text-align:center}
@@ -81,6 +82,7 @@
     'use strict';
     const canvas=document.querySelector('#solo');
     const chrome=document.querySelector('#chrome');
+    const bottomControls=document.querySelector('.bottom');
     const fileInput=document.querySelector('#file');
     const homeScreenButton=document.querySelector('#homescreen');
     const motionButton=document.querySelector('#motion');
@@ -320,10 +322,34 @@
       else if(type==='podcasts'){ctx.fillStyle='#af52de';roundedPath(ctx,x,y,s,s,s*.225);ctx.fill();line(ctx,'#fff',s*.035);ctx.beginPath();ctx.arc(cx,y+s*.43,s*.16,Math.PI*.12,Math.PI*.88,true);ctx.stroke();ctx.beginPath();ctx.arc(cx,y+s*.43,s*.28,Math.PI*.16,Math.PI*.84,true);ctx.stroke();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx,y+s*.39,s*.07,0,Math.PI*2);ctx.fill();roundedPath(ctx,cx-s*.07,y+s*.50,s*.14,s*.28,s*.07);ctx.fill()}
       else if(type==='tv'){ctx.fillStyle='#111';roundedPath(ctx,x,y,s,s,s*.225);ctx.fill();line(ctx,'#fff',s*.055);roundedPath(ctx,x+s*.19,y+s*.27,s*.62,s*.48,s*.10);ctx.stroke();ctx.beginPath();ctx.moveTo(x+s*.39,y+s*.17);ctx.lineTo(cx,y+s*.27);ctx.lineTo(x+s*.61,y+s*.17);ctx.stroke()}
       else if(type==='health'){ctx.fillStyle='#fff';roundedPath(ctx,x,y,s,s,s*.225);ctx.fill();ctx.fillStyle='#ff2d55';ctx.beginPath();ctx.moveTo(cx,y+s*.74);ctx.bezierCurveTo(x+s*.14,y+s*.50,x+s*.29,y+s*.27,cx,y+s*.43);ctx.bezierCurveTo(x+s*.71,y+s*.27,x+s*.86,y+s*.50,cx,y+s*.74);ctx.fill()}
-      else if(type==='phone'){ctx.fillStyle='#fff';ctx.font=`700 ${s*.59}px -apple-system`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.save();ctx.translate(cx,cy);ctx.rotate(-.55);ctx.fillText('⌕',0,0);ctx.restore();line(ctx,'#fff',s*.12);ctx.beginPath();ctx.arc(cx,cy,s*.24,.68,2.46);ctx.stroke()}
+      else if(type==='phone'){
+        ctx.fillStyle='#fff';
+        ctx.beginPath();
+        ctx.moveTo(x+s*.245,y+s*.185);
+        ctx.bezierCurveTo(x+s*.195,y+s*.165,x+s*.145,y+s*.195,x+s*.128,y+s*.25);
+        ctx.bezierCurveTo(x+s*.09,y+s*.38,x+s*.23,y+s*.63,x+s*.405,y+s*.785);
+        ctx.bezierCurveTo(x+s*.58,y+s*.94,x+s*.82,y+s*.97,x+s*.875,y+s*.845);
+        ctx.bezierCurveTo(x+s*.9,y+s*.79,x+s*.875,y+s*.735,x+s*.825,y+s*.705);
+        ctx.lineTo(x+s*.675,y+s*.615);
+        ctx.bezierCurveTo(x+s*.62,y+s*.58,x+s*.55,y+s*.59,x+s*.505,y+s*.635);
+        ctx.lineTo(x+s*.445,y+s*.695);
+        ctx.bezierCurveTo(x+s*.34,y+s*.61,x+s*.265,y+s*.51,x+s*.205,y+s*.39);
+        ctx.lineTo(x+s*.28,y+s*.34);
+        ctx.bezierCurveTo(x+s*.33,y+s*.305,x+s*.34,y+s*.235,x+s*.305,y+s*.18);
+        ctx.closePath();ctx.fill();
+      }
       else if(type==='safari'){ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx,cy,s*.36,0,Math.PI*2);ctx.fill();line(ctx,'#b7e5ff',s*.018);for(let i=0;i<8;i++){ctx.save();ctx.translate(cx,cy);ctx.rotate(i*Math.PI/4);ctx.beginPath();ctx.moveTo(0,-s*.31);ctx.lineTo(0,-s*.26);ctx.stroke();ctx.restore()}ctx.fillStyle='#ff3b30';ctx.beginPath();ctx.moveTo(cx+s*.04,cy-s*.04);ctx.lineTo(cx-s*.09,cy+s*.18);ctx.lineTo(cx-s*.03,cy+s*.02);ctx.closePath();ctx.fill();ctx.fillStyle='#0a84ff';ctx.beginPath();ctx.moveTo(cx-s*.04,cy+s*.04);ctx.lineTo(cx+s*.09,cy-s*.18);ctx.lineTo(cx+s*.03,cy-s*.02);ctx.closePath();ctx.fill()}
       else if(type==='messages'){ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx,cy-s*.025,s*.29,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.moveTo(x+s*.36,y+s*.69);ctx.lineTo(x+s*.28,y+s*.80);ctx.lineTo(x+s*.50,y+s*.71);ctx.closePath();ctx.fill()}
-      else if(type==='music'){ctx.fillStyle='#fff';ctx.font=`700 ${s*.62}px -apple-system`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('♪',cx+s*.03,cy)}
+      else if(type==='music'){
+        ctx.fillStyle='#fff';
+        ctx.save();ctx.translate(cx,cy);ctx.rotate(-.11);
+        ctx.beginPath();ctx.ellipse(-s*.19,s*.23,s*.14,s*.105,-.22,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.ellipse(s*.22,s*.14,s*.14,s*.105,-.22,0,Math.PI*2);ctx.fill();
+        ctx.fillRect(-s*.09,-s*.31,s*.065,s*.53);
+        ctx.fillRect(s*.32,-s*.39,s*.065,s*.52);
+        ctx.beginPath();ctx.moveTo(-s*.09,-s*.31);ctx.lineTo(s*.385,-s*.39);ctx.lineTo(s*.385,-s*.25);ctx.lineTo(-s*.09,-s*.17);ctx.closePath();ctx.fill();
+        ctx.restore();
+      }
       ctx.restore();
     }
     function viewportTextureSize(){
@@ -394,15 +420,20 @@
 
     let targetAngle=0,displayAngle=0;
     let motionRequested=false,motionData=false,previousGravityAngle=null,accumulated=0,motionTimer=0;
+    let permissionDenials=0;
     let dragging=false,dragMoved=false,dragStartX=0,dragStartAngle=0;
     let lastFrame=performance.now();
 
     const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
     const normalizeDelta=d=>((d+180)%360+360)%360-180;
-    function showStatus(message,duration=2600){status.textContent=message;status.classList.add('show');clearTimeout(showStatus.t);showStatus.t=setTimeout(()=>status.classList.remove('show'),duration)}
+    function positionStatus(){
+      const controlsTop=bottomControls.getBoundingClientRect().top;
+      status.style.bottom=`${Math.max(10,innerHeight-controlsTop+10)}px`;
+    }
+    function showStatus(message,duration=2600){positionStatus();status.textContent=message;status.classList.add('show');clearTimeout(showStatus.t);showStatus.t=setTimeout(()=>status.classList.remove('show'),duration)}
     function motionStarted(){
       if(motionData)return;
-      motionData=true;clearTimeout(motionTimer);notice.hidden=true;
+      motionData=true;permissionDenials=0;clearTimeout(motionTimer);notice.hidden=true;
       motionButton.removeAttribute('aria-busy');motionButton.classList.add('active');motionButton.textContent='Motion on · 모션 켜짐';
       showStatus('Motion is on · 모션이 켜졌습니다');
     }
@@ -433,11 +464,20 @@
       motionButton.removeAttribute('aria-busy');motionButton.classList.remove('active');motionButton.textContent='Enable motion · 모션 켜기';
       notice.hidden=false;
       if(reason==='unsupported'){
+        retryButton.hidden=true;
         noticeTitle.textContent='Motion not supported on this device';
         noticeCopy.innerHTML='This browser does not provide device motion data. Drag left and right to preview the effect.<span>이 브라우저는 기기 모션 데이터를 지원하지 않습니다. 화면을 좌우로 드래그해 효과를 미리 볼 수 있습니다.</span>';
+        return;
+      }
+      permissionDenials+=1;
+      if(permissionDenials===1){
+        retryButton.hidden=false;retryButton.textContent='Retry motion · 다시 시도';
+        noticeTitle.textContent='Motion access was denied';
+        noticeCopy.innerHTML='If you dismissed the request by mistake, try once more. If Safari denies it again, turn on Settings → Safari → Motion & Orientation Access, then reload this page.<span>권한 요청을 실수로 닫았다면 한 번 더 시도하세요. 다시 거부되면 설정 → Safari → 동작 및 방향 접근을 켠 뒤 이 페이지를 새로고침하세요.</span>';
       }else{
-        noticeTitle.textContent='Motion denied';
-        noticeCopy.innerHTML='Safari did not allow motion access. Check Settings → Apps → Safari → Motion & Orientation Access, reload, and tap Enable motion again.<span>Safari가 모션 접근을 허용하지 않았습니다. 설정 → 앱 → Safari → 동작 및 방향 접근을 확인하고 새로고침한 뒤 모션 켜기를 다시 눌러 주세요.</span>';
+        retryButton.hidden=true;
+        noticeTitle.textContent='Motion access is still off';
+        noticeCopy.innerHTML='Safari won’t show the permission request again after access is denied. Turn on Settings → Safari → Motion & Orientation Access, then reload this page. You can still drag left and right to preview.<span>Safari는 한 번 거부된 권한 요청을 다시 띄우지 않습니다. 설정 → Safari → 동작 및 방향 접근을 켠 뒤 이 페이지를 새로고침하세요. 좌우 드래그로도 미리 볼 수 있습니다.</span>';
       }
     }
 
@@ -446,6 +486,7 @@
       motionTimer=setTimeout(()=>{
         if(!motionData){
           motionButton.removeAttribute('aria-busy');motionButton.textContent='Enable motion · 모션 켜기';
+          retryButton.hidden=false;retryButton.textContent='Retry motion · 다시 시도';
           notice.hidden=false;noticeTitle.textContent='No motion data — try the drag preview';
           noticeCopy.innerHTML='Permission was accepted, but Safari sent no sensor data. Check Motion & Orientation Access, reload the page, and try once more. You can still drag left and right to preview.<span>권한은 허용됐지만 Safari에서 센서 데이터가 오지 않았습니다. 동작 및 방향 접근 설정을 확인하고 페이지를 새로고침한 뒤 다시 시도하세요. 좌우 드래그로도 미리 볼 수 있습니다.</span>';
         }
@@ -499,6 +540,9 @@
     });
     motionButton.addEventListener('click',event=>{event.stopPropagation();enableMotion()});
     retryButton.addEventListener('click',enableMotion);
+    document.addEventListener('pointerdown',event=>{
+      if(!notice.hidden&&!notice.contains(event.target))notice.hidden=true;
+    });
     fileInput.addEventListener('click',event=>event.stopPropagation());
     fileInput.addEventListener('change',()=>{
       const chosen=fileInput.files&&fileInput.files[0];if(!chosen)return;
@@ -529,7 +573,7 @@
       }else if(event.key==='Home'){event.preventDefault();targetAngle=0}
     });
     canvas.addEventListener('click',()=>{if(motionData)chrome.classList.toggle('hidden')});
-    window.addEventListener('resize',resize,{passive:true});
+    window.addEventListener('resize',()=>{resize();positionStatus()},{passive:true});
   })();
   </script>
 </body>
