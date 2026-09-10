@@ -269,7 +269,37 @@
     function drawSignal(ctx,x,y){
       ctx.save();ctx.fillStyle='#fff';for(let i=0;i<4;i++){roundedPath(ctx,x+i*13,y+(3-i)*6,9,14+i*6,4);ctx.fill()}ctx.strokeStyle='#fff';ctx.lineWidth=6;ctx.beginPath();ctx.arc(x+88,y+22,26,Math.PI*1.15,Math.PI*1.85);ctx.stroke();ctx.beginPath();ctx.arc(x+88,y+24,14,Math.PI*1.17,Math.PI*1.83);ctx.stroke();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x+88,y+27,4,0,Math.PI*2);ctx.fill();roundedPath(ctx,x+130,y+3,54,27,7);ctx.stroke();ctx.fillRect(x+136,y+9,38,15);ctx.fillRect(x+186,y+11,4,11);ctx.restore();
     }
-    function iconBase(ctx,x,y,size,color){ctx.save();ctx.shadowColor='rgba(0,0,0,.20)';ctx.shadowBlur=18;ctx.shadowOffsetY=7;roundedPath(ctx,x,y,size,size,size*.225);ctx.fillStyle=color;ctx.fill();ctx.restore()}
+    function squirclePath(ctx,x,y,w,h){
+      const steps=56,n=5.1,a=w/2,b=h/2,cx=x+a,cy=y+b;
+      ctx.beginPath();
+      for(let i=0;i<=steps;i++){
+        const t=-Math.PI/2+i*Math.PI*2/steps,ct=Math.cos(t),st=Math.sin(t);
+        const px=cx+a*Math.sign(ct)*Math.pow(Math.abs(ct),2/n);
+        const py=cy+b*Math.sign(st)*Math.pow(Math.abs(st),2/n);
+        if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);
+      }
+      ctx.closePath();
+    }
+    function iconBase(ctx,x,y,size,color){
+      ctx.save();
+      ctx.shadowColor='rgba(0,0,0,.34)';ctx.shadowBlur=size*.14;ctx.shadowOffsetY=size*.055;
+      squirclePath(ctx,x,y,size,size);ctx.fillStyle=color;ctx.fill();
+      ctx.shadowColor='transparent';squirclePath(ctx,x,y,size,size);ctx.clip();
+      const depth=ctx.createLinearGradient(x,y,x,y+size);depth.addColorStop(0,'rgba(255,255,255,.28)');depth.addColorStop(.32,'rgba(255,255,255,.07)');depth.addColorStop(.68,'rgba(0,0,0,0)');depth.addColorStop(1,'rgba(0,0,0,.19)');ctx.fillStyle=depth;ctx.fillRect(x,y,size,size);
+      const bloom=ctx.createRadialGradient(x+size*.18,y+size*.08,0,x+size*.25,y+size*.18,size*.78);bloom.addColorStop(0,'rgba(255,255,255,.24)');bloom.addColorStop(.42,'rgba(255,255,255,.05)');bloom.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=bloom;ctx.fillRect(x,y,size,size);
+      ctx.restore();
+    }
+    function polishIcon(ctx,x,y,size){
+      ctx.save();squirclePath(ctx,x,y,size,size);ctx.clip();
+      const gloss=ctx.createLinearGradient(x,y,x,y+size*.46);gloss.addColorStop(0,'rgba(255,255,255,.22)');gloss.addColorStop(.44,'rgba(255,255,255,.055)');gloss.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=gloss;ctx.fillRect(x,y,size,size*.5);
+      const edge=ctx.createLinearGradient(x,y,x+size,y+size);edge.addColorStop(0,'rgba(255,255,255,.25)');edge.addColorStop(.45,'rgba(255,255,255,.045)');edge.addColorStop(1,'rgba(0,0,0,.17)');ctx.strokeStyle=edge;ctx.lineWidth=Math.max(1,size*.012);squirclePath(ctx,x+ctx.lineWidth/2,y+ctx.lineWidth/2,size-ctx.lineWidth,size-ctx.lineWidth);ctx.stroke();
+      ctx.restore();
+    }
+    function drawPolishedIcon(ctx,type,x,y,size,color){
+      iconBase(ctx,x,y,size,color);
+      ctx.save();squirclePath(ctx,x,y,size,size);ctx.clip();drawAppGlyph(ctx,type,x,y,size);ctx.restore();
+      polishIcon(ctx,x,y,size);
+    }
     function line(ctx,color,width){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap='round';ctx.lineJoin='round'}
     function drawAppGlyph(ctx,type,x,y,s){
       const cx=x+s/2,cy=y+s/2;
@@ -314,21 +344,21 @@
 
       const apps=[['facetime','FaceTime','#34c759'],['calendar','Calendar','#fff'],['photos','Photos','#fff'],['camera','Camera','#aeb0b5'],['mail','Mail','#0a84ff'],['clock','Clock','#111'],['maps','Maps','#e9f3dd'],['weather','Weather','#0a84ff'],['reminders','Reminders','#fff'],['notes','Notes','#fff'],['stocks','Stocks','#050505'],['books','Books','#ff9500'],['appstore','App Store','#0a84ff'],['podcasts','Podcasts','#af52de'],['tv','TV','#111'],['health','Health','#fff']];
       const columns=landscape?8:4,rows=Math.ceil(apps.length/columns);
-      const side=landscape?58*unit:width*.045;
+      const side=landscape?76*unit:width*.072;
       const dockBottom=(landscape?54:122)*unit;
       const dockHeight=Math.min((landscape?238:282)*unit,height*.28);
       const dockWidth=Math.min(1039*unit,width-2*side);
       const dockX=(width-dockWidth)/2,dockY=height-dockBottom-dockHeight;
       const gridTop=(landscape?150:282)*unit;
       const gridBottom=dockY-(landscape?100:210)*unit;
-      const maxByWidth=(width-2*side)/(columns+(columns-1)*.37);
+      const maxByWidth=landscape?(width-2*side)/(columns+(columns-1)*.37):width*.18;
       const maxByHeight=(gridBottom-gridTop)/(rows+(rows-1)*.61);
       const icon=Math.max(1,Math.min(landscape?178*unit:width*.18,maxByWidth,maxByHeight));
       const xStep=columns>1?(width-2*side-icon)/(columns-1):0;
       const yStep=rows>1?Math.min(icon*1.61,(gridBottom-gridTop-icon)/(rows-1)):0;
       apps.forEach((app,i)=>{
         const col=i%columns,row=Math.floor(i/columns),x=side+col*xStep,y=gridTop+row*yStep;
-        iconBase(ctx,x,y,icon,app[2]);drawAppGlyph(ctx,app[0],x,y,icon);
+        drawPolishedIcon(ctx,app[0],x,y,icon,app[2]);
         ctx.fillStyle='#fff';ctx.shadowColor='rgba(0,0,0,.72)';ctx.shadowBlur=10*unit;ctx.font=`500 ${Math.max(11*unit,icon*.174)}px -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif`;ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.fillText(app[1],x+icon/2,y+icon+icon*.264);ctx.shadowBlur=0;
       });
 
@@ -337,7 +367,7 @@
       const dockInset=(landscape?56:42)*unit;
       const dockIcon=Math.min(icon,dockHeight-(landscape?82:50)*unit,(dockWidth-2*dockInset)/(landscape?5.5:4.54));
       const dockStep=(dockWidth-2*dockInset-dockIcon)/3;const dockIconY=dockY+(dockHeight-dockIcon)/2;
-      dock.forEach((app,i)=>{const x=dockX+dockInset+i*dockStep;iconBase(ctx,x,dockIconY,dockIcon,app[1]);drawAppGlyph(ctx,app[0],x,dockIconY,dockIcon)});
+      dock.forEach((app,i)=>{const x=dockX+dockInset+i*dockStep;drawPolishedIcon(ctx,app[0],x,dockIconY,dockIcon,app[1])});
       ctx.fillStyle='rgba(255,255,255,.88)';roundedPath(ctx,width/2-160*unit,height-51*unit,320*unit,15*unit,8*unit);ctx.fill();return c;
     }
     function refreshTexture(width,height){
