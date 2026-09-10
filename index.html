@@ -34,18 +34,22 @@
     .icon{padding:0;width:44px}
     .icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
     .bottom{position:absolute;left:50%;bottom:max(17px,calc(env(safe-area-inset-bottom) + 10px));transform:translateX(-50%);width:min(94vw,650px);display:flex;flex-direction:column;align-items:center;gap:10px}
-    .actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;width:100%;max-width:100%}
-    .actions>button,.actions>.pick{width:100%;min-width:0;padding-inline:10px;overflow:hidden}
+    .actions{display:flex;justify-content:center;width:100%;max-width:100%}
+    .actions>.pick{width:min(100%,320px);min-width:0;padding-inline:10px;overflow:hidden}
     .pick input{display:none}
     .hint{margin-bottom:73px;padding:4px 9px;border-radius:8px;background:rgba(0,0,0,.17);text-align:center;font-size:12px;font-weight:520;line-height:1.45;color:rgba(255,255,255,.86);text-shadow:0 2px 12px rgba(0,0,0,.9)}
     @media(orientation:landscape) and (min-height:521px){.hint{margin-bottom:169px}}
     .hint span{display:block;color:rgba(255,255,255,.62);font-size:11px}
-    .motion.active{background:rgba(246,246,248,.9);border-color:transparent;color:#111}
+    .modal-backdrop{position:fixed;z-index:6;inset:0;background:rgba(0,0,0,.28);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+    .modal-backdrop[hidden]{display:none}
     .notice{position:fixed;z-index:7;left:50%;top:50%;width:min(88vw,370px);transform:translate(-50%,-50%);padding:25px 22px;border:1px solid rgba(255,255,255,.17);border-radius:24px;background:rgba(17,17,19,.78);box-shadow:0 22px 70px rgba(0,0,0,.48);-webkit-backdrop-filter:blur(24px) saturate(1.2);backdrop-filter:blur(24px) saturate(1.2);text-align:center}
     .notice[hidden]{display:none}
     .notice h1{font-size:19px;line-height:1.25;margin:0 0 9px;letter-spacing:-.02em}
     .notice p{font-size:13px;line-height:1.55;color:rgba(255,255,255,.72);margin:0 0 18px}
     .notice p span{display:block;margin-top:3px;color:rgba(255,255,255,.5)}
+    .prompt-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    .prompt-actions button{width:100%;min-width:0;padding-inline:10px}
+    .prompt-actions .primary{background:rgba(246,246,248,.92);border-color:transparent;color:#111}
     .status{position:fixed;z-index:8;left:50%;bottom:max(86px,calc(env(safe-area-inset-bottom) + 78px));max-width:90vw;transform:translate(-50%,8px);padding:10px 14px;border:1px solid rgba(255,255,255,.15);border-radius:13px;background:rgba(18,18,20,.66);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);font-size:12px;line-height:1.3;opacity:0;visibility:hidden;transition:opacity .16s ease,transform .16s ease,visibility 0s linear .16s;pointer-events:none;text-align:center}
     .status.show{opacity:1;visibility:visible;transform:translate(-50%,0);transition-delay:0s}
     @media(max-width:430px){button,.pick{height:50px;min-width:0;padding:7px 5px;font-size:clamp(10px,3vw,12px);flex-direction:column;gap:2px}.actions{gap:7px}.hint{font-size:11px}.hint span{font-size:10px}.desktop-extra{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;font-size:10px;font-weight:520;opacity:.68}}
@@ -65,11 +69,19 @@
     <div class="bottom">
       <div class="hint" id="hint">Tilt left or right.<span>좌우로 기울여보세요</span></div>
       <div class="actions">
-        <label class="pick">Choose image <span class="desktop-extra">· 사진 고르기</span><input id="file" type="file" accept="image/*"></label>
-        <button class="motion" id="motion">Enable motion <span class="desktop-extra">· 모션 켜기</span></button>
+        <label class="pick">Change background <span class="desktop-extra">· 배경 바꾸기</span><input id="file" type="file" accept="image/*"></label>
       </div>
     </div>
   </div>
+
+  <div class="modal-backdrop" id="motion-backdrop" hidden></div>
+  <section class="notice" id="motion-prompt" hidden role="dialog" aria-modal="true" aria-labelledby="motion-prompt-title">
+    <h1 id="motion-prompt-title">Use motion? / 모션을 사용할까요?</h1>
+    <div class="prompt-actions">
+      <button class="primary" id="allow-motion">Allow · 허용</button>
+      <button id="not-now">Not now · 나중에</button>
+    </div>
+  </section>
 
   <section class="notice" id="notice" hidden role="dialog" aria-live="polite">
     <h1 id="notice-title">Motion isn’t available</h1>
@@ -85,8 +97,11 @@
     const chrome=document.querySelector('#chrome');
     const bottomControls=document.querySelector('.bottom');
     const fileInput=document.querySelector('#file');
-    const motionButton=document.querySelector('#motion');
     const fullscreenButton=document.querySelector('#fullscreen');
+    const motionBackdrop=document.querySelector('#motion-backdrop');
+    const motionPrompt=document.querySelector('#motion-prompt');
+    const allowMotionButton=document.querySelector('#allow-motion');
+    const notNowButton=document.querySelector('#not-now');
     const notice=document.querySelector('#notice');
     const noticeTitle=document.querySelector('#notice-title');
     const noticeCopy=document.querySelector('#notice-copy');
@@ -325,30 +340,37 @@
       else if(type==='phone'){
         ctx.fillStyle='#fff';
         ctx.beginPath();
-        ctx.moveTo(x+s*.245,y+s*.185);
-        ctx.bezierCurveTo(x+s*.195,y+s*.165,x+s*.145,y+s*.195,x+s*.128,y+s*.25);
-        ctx.bezierCurveTo(x+s*.09,y+s*.38,x+s*.23,y+s*.63,x+s*.405,y+s*.785);
-        ctx.bezierCurveTo(x+s*.58,y+s*.94,x+s*.82,y+s*.97,x+s*.875,y+s*.845);
-        ctx.bezierCurveTo(x+s*.9,y+s*.79,x+s*.875,y+s*.735,x+s*.825,y+s*.705);
-        ctx.lineTo(x+s*.675,y+s*.615);
-        ctx.bezierCurveTo(x+s*.62,y+s*.58,x+s*.55,y+s*.59,x+s*.505,y+s*.635);
-        ctx.lineTo(x+s*.445,y+s*.695);
-        ctx.bezierCurveTo(x+s*.34,y+s*.61,x+s*.265,y+s*.51,x+s*.205,y+s*.39);
-        ctx.lineTo(x+s*.28,y+s*.34);
-        ctx.bezierCurveTo(x+s*.33,y+s*.305,x+s*.34,y+s*.235,x+s*.305,y+s*.18);
+        ctx.moveTo(x+s*.272,y+s*.162);
+        ctx.bezierCurveTo(x+s*.225,y+s*.143,x+s*.171,y+s*.166,x+s*.148,y+s*.217);
+        ctx.bezierCurveTo(x+s*.094,y+s*.337,x+s*.163,y+s*.527,x+s*.302,y+s*.692);
+        ctx.bezierCurveTo(x+s*.442,y+s*.856,x+s*.641,y+s*.934,x+s*.774,y+s*.883);
+        ctx.bezierCurveTo(x+s*.832,y+s*.861,x+s*.862,y+s*.806,x+s*.845,y+s*.754);
+        ctx.bezierCurveTo(x+s*.837,y+s*.729,x+s*.819,y+s*.709,x+s*.795,y+s*.695);
+        ctx.lineTo(x+s*.656,y+s*.612);
+        ctx.bezierCurveTo(x+s*.607,y+s*.583,x+s*.545,y+s*.592,x+s*.505,y+s*.634);
+        ctx.lineTo(x+s*.442,y+s*.699);
+        ctx.bezierCurveTo(x+s*.351,y+s*.644,x+s*.276,y+s*.557,x+s*.224,y+s*.456);
+        ctx.bezierCurveTo(x+s*.203,y+s*.415,x+s*.187,y+s*.375,x+s*.177,y+s*.337);
+        ctx.lineTo(x+s*.267,y+s*.282);
+        ctx.bezierCurveTo(x+s*.317,y+s*.252,x+s*.335,y+s*.191,x+s*.272,y+s*.162);
         ctx.closePath();ctx.fill();
+        ctx.save();ctx.globalAlpha=.16;ctx.fillStyle='#dfffea';
+        ctx.beginPath();ctx.ellipse(x+s*.715,y+s*.795,s*.085,s*.035,-.48,0,Math.PI*2);ctx.fill();ctx.restore();
       }
       else if(type==='safari'){ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx,cy,s*.36,0,Math.PI*2);ctx.fill();line(ctx,'#b7e5ff',s*.018);for(let i=0;i<8;i++){ctx.save();ctx.translate(cx,cy);ctx.rotate(i*Math.PI/4);ctx.beginPath();ctx.moveTo(0,-s*.31);ctx.lineTo(0,-s*.26);ctx.stroke();ctx.restore()}ctx.fillStyle='#ff3b30';ctx.beginPath();ctx.moveTo(cx+s*.04,cy-s*.04);ctx.lineTo(cx-s*.09,cy+s*.18);ctx.lineTo(cx-s*.03,cy+s*.02);ctx.closePath();ctx.fill();ctx.fillStyle='#0a84ff';ctx.beginPath();ctx.moveTo(cx-s*.04,cy+s*.04);ctx.lineTo(cx+s*.09,cy-s*.18);ctx.lineTo(cx+s*.03,cy-s*.02);ctx.closePath();ctx.fill()}
       else if(type==='messages'){ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx,cy-s*.025,s*.29,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.moveTo(x+s*.36,y+s*.69);ctx.lineTo(x+s*.28,y+s*.80);ctx.lineTo(x+s*.50,y+s*.71);ctx.closePath();ctx.fill()}
       else if(type==='music'){
         ctx.fillStyle='#fff';
-        ctx.save();ctx.translate(cx,cy);ctx.rotate(-.11);
-        ctx.beginPath();ctx.ellipse(-s*.19,s*.23,s*.14,s*.105,-.22,0,Math.PI*2);ctx.fill();
-        ctx.beginPath();ctx.ellipse(s*.22,s*.14,s*.14,s*.105,-.22,0,Math.PI*2);ctx.fill();
-        ctx.fillRect(-s*.09,-s*.31,s*.065,s*.53);
-        ctx.fillRect(s*.32,-s*.39,s*.065,s*.52);
-        ctx.beginPath();ctx.moveTo(-s*.09,-s*.31);ctx.lineTo(s*.385,-s*.39);ctx.lineTo(s*.385,-s*.25);ctx.lineTo(-s*.09,-s*.17);ctx.closePath();ctx.fill();
-        ctx.restore();
+        ctx.beginPath();ctx.ellipse(x+s*.326,y+s*.710,s*.135,s*.102,-.22,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.ellipse(x+s*.704,y+s*.624,s*.135,s*.102,-.22,0,Math.PI*2);ctx.fill();
+        roundedPath(ctx,x+s*.420,y+s*.244,s*.068,s*.455,s*.032);ctx.fill();
+        roundedPath(ctx,x+s*.798,y+s*.168,s*.068,s*.445,s*.032);ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(x+s*.430,y+s*.245);ctx.lineTo(x+s*.850,y+s*.160);
+        ctx.lineTo(x+s*.850,y+s*.294);ctx.lineTo(x+s*.430,y+s*.380);ctx.closePath();ctx.fill();
+        ctx.save();ctx.globalAlpha=.18;ctx.fillStyle='#ffdbe6';
+        ctx.beginPath();ctx.ellipse(x+s*.304,y+s*.684,s*.062,s*.025,-.22,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.ellipse(x+s*.682,y+s*.598,s*.062,s*.025,-.22,0,Math.PI*2);ctx.fill();ctx.restore();
       }
       ctx.restore();
     }
@@ -431,11 +453,11 @@
       status.style.bottom=`${Math.max(10,innerHeight-controlsTop+10)}px`;
     }
     function showStatus(message,duration=2600){positionStatus();status.textContent=message;clearTimeout(showStatus.t);status.classList.remove('show');void status.offsetWidth;requestAnimationFrame(()=>status.classList.add('show'));showStatus.t=setTimeout(()=>status.classList.remove('show'),duration)}
-    function setMotionLabel(english,korean){motionButton.innerHTML=`${english} <span class="desktop-extra">· ${korean}</span>`}
+    function closeMotionPrompt(){motionPrompt.hidden=true;motionBackdrop.hidden=true}
+    function openMotionPrompt(){motionBackdrop.hidden=false;motionPrompt.hidden=false}
     function motionStarted(){
       if(motionData)return;
       motionData=true;permissionDenials=0;clearTimeout(motionTimer);notice.hidden=true;
-      motionButton.removeAttribute('aria-busy');motionButton.classList.add('active');setMotionLabel('Motion on','모션 켜짐');
       showStatus('Motion is on · 모션이 켜졌습니다');
     }
 
@@ -462,8 +484,7 @@
     }
 
     function showPermissionHelp(reason){
-      motionButton.removeAttribute('aria-busy');motionButton.classList.remove('active');setMotionLabel('Enable motion','모션 켜기');
-      notice.hidden=false;
+      closeMotionPrompt();notice.hidden=false;
       if(reason==='unsupported'){
         retryButton.hidden=true;
         noticeTitle.textContent='Motion not supported on this device';
@@ -471,16 +492,15 @@
         return;
       }
       permissionDenials+=1;
-      retryButton.hidden=false;retryButton.textContent='Enable motion · 모션 켜기';
-      noticeTitle.textContent=permissionDenials===1?'Motion access was denied':'Motion access is still off';
-      noticeCopy.innerHTML='Go to Settings → Apps → Safari → Advanced → Website Data and delete seoseong.uk. Then reload this page and press Enable motion again. This resets the denial record so the permission prompt can appear again.<span>설정 → Apps → Safari → 고급 → 웹 사이트 데이터에서 seoseong.uk를 삭제한 뒤, 페이지를 새로고침하고 Enable motion 버튼을 다시 눌러주세요. 거부 기록이 초기화되어 권한 팝업이 다시 뜹니다.</span>';
+      retryButton.hidden=true;
+      noticeTitle.textContent='Motion access was denied';
+      noticeCopy.innerHTML='Go to Settings → Apps → Safari → Advanced → Website Data and delete seoseong.uk. Then reload this page. This resets the denial record so the permission prompt can appear again.<span>설정 → Apps → Safari → 고급 → 웹 사이트 데이터에서 seoseong.uk를 삭제한 뒤 페이지를 새로고침해 주세요. 거부 기록이 초기화되어 권한 팝업이 다시 뜹니다.</span>';
     }
 
     function armMotionTimeout(){
       clearTimeout(motionTimer);
       motionTimer=setTimeout(()=>{
         if(!motionData){
-          motionButton.removeAttribute('aria-busy');setMotionLabel('Enable motion','모션 켜기');
           retryButton.hidden=false;retryButton.textContent='Retry motion · 다시 시도';
           notice.hidden=false;noticeTitle.textContent='No motion data — try the drag preview';
           noticeCopy.innerHTML='Permission was accepted, but Safari sent no sensor data. Check Motion & Orientation Access, reload the page, and try once more. You can still drag left and right to preview.<span>권한은 허용됐지만 Safari에서 센서 데이터가 오지 않았습니다. 동작 및 방향 접근 설정을 확인하고 페이지를 새로고침한 뒤 다시 시도하세요. 좌우 드래그로도 미리 볼 수 있습니다.</span>';
@@ -488,8 +508,7 @@
       },5000);
     }
     async function enableMotion(){
-      notice.hidden=true;motionData=false;previousGravityAngle=null;accumulated=0;
-      motionButton.setAttribute('aria-busy','true');setMotionLabel('Requesting…','요청 중');
+      closeMotionPrompt();notice.hidden=true;motionData=false;previousGravityAngle=null;accumulated=0;
       showStatus('Requesting motion access… · 모션 권한 요청 중…',5000);
       try{
         if(typeof DeviceMotionEvent==='undefined'){
@@ -501,7 +520,6 @@
           if(result!=='granted'){showPermissionHelp('denied');return}
         }
         addMotionListener();
-        setMotionLabel('Waiting…','모션 대기 중');
         armMotionTimeout();showStatus('Permission accepted — tilt left or right · 허용됨 — 좌우로 기울여 보세요',5000);
       }catch(error){showPermissionHelp('denied')}
     }
@@ -528,8 +546,11 @@
     }
     requestAnimationFrame(render);
 
-    motionButton.addEventListener('click',event=>{event.stopPropagation();enableMotion()});
+    allowMotionButton.addEventListener('click',event=>{event.stopPropagation();enableMotion()});
+    notNowButton.addEventListener('click',event=>{event.stopPropagation();closeMotionPrompt()});
     retryButton.addEventListener('click',enableMotion);
+    const isiOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+    if(isiOS&&typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission==='function')openMotionPrompt();
     document.addEventListener('pointerdown',event=>{
       if(!notice.hidden&&!notice.contains(event.target))notice.hidden=true;
     });
